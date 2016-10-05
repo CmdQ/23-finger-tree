@@ -151,6 +151,23 @@ module Finger =
         | Deep(prefix, deeper, suffix) ->
             Deep(prefix |> Digit.prepend a, deeper, suffix)
 
+    let ofList list = List.fold (flip append<'a>) empty list
 
+    let ofArray arr = Array.foldBack prepend arr empty
 
+    let ofSeq seq = Seq.fold (flip append<'a>) empty seq
 
+    let rec toSeq<'a> (tree:FingerTree<'a>) : seq<'a> = seq {
+        match tree with
+        | Single single ->
+            yield single
+        | Deep(prefix, deeper, suffix) ->
+            yield! prefix |> Digit.toList
+            yield! deeper |> toSeq |> Seq.collect Node.toList
+            yield! suffix |> Digit.toList
+        | Empty -> ()
+    }
+
+    let toArray<'a> = toSeq<'a> >> Seq.toArray
+
+    let toList<'a> = toSeq<'a> >> Seq.toList
