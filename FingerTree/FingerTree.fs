@@ -1,128 +1,130 @@
 ﻿namespace CmdQ
 
-    type Node<'a> =
-        | Node2 of 'a * 'a
-        | Node3 of 'a * 'a * 'a
+module Errors =
+    let treeIsEmpty = "The input tree was empty."
 
-        static member OfList = function
-            | [a; b] -> Node2(a, b)
-            | [a; b; c] -> Node3(a, b, c)
-            | _ -> failwith "Only lists of length 2 or 3 accepted!"
+type Node<'a> =
+    | Node2 of 'a * 'a
+    | Node3 of 'a * 'a * 'a
 
-        member me.ToList () =
-            match me with
-            | Node2(a, b) -> [a; b]
-            | Node3(a, b, c) -> [a; b; c]
+module Node =
+    let ofList = function
+        | [a; b] -> Node2(a, b)
+        | [a; b; c] -> Node3(a, b, c)
+        | _ -> failwith "Only lists of length 2 or 3 accepted!"
 
-    type Digit<'a> =
-        | One of 'a
-        | Two of 'a * 'a
-        | Three of 'a * 'a * 'a
-        | Four of 'a * 'a * 'a * 'a
+    let toList = function
+        | Node2(a, b) -> [a; b]
+        | Node3(a, b, c) -> [a; b; c]
 
-        static member OfList = function
-            | [a] -> One(a)
-            | [a; b] -> Two(a, b)
-            | [a; b; c] -> Three(a, b, c)
-            | [a; b; c; d] -> Four(a, b, c, d)
-            | _ -> failwith "Only lists of length 1 to 4 accepted!"
+type Digit<'a> =
+    | One of 'a
+    | Two of 'a * 'a
+    | Three of 'a * 'a * 'a
+    | Four of 'a * 'a * 'a * 'a
 
-        member me.ToList () =
-            match me with
-            | One a -> [a]
-            | Two(a, b) -> [a; b]
-            | Three(a, b, c) -> [a; b; c]
-            | Four(a, b, c, d) -> [a; b; c; d]
+[<NoComparison>]
+[<NoEquality>]
+type FingerTree<'a> =
+    | Empty
+    | Single of 'a
+    | Deep of Digit<'a> * FingerTree<Node<'a>> * Digit<'a>
 
-        member me.Append x =
-            match me with
-            | One a -> Two(a, x)
-            | Two(a, b) -> Three(a, b, x)
-            | Three(a, b, c) -> Four(a, b, c, x)
-            | _ -> failwith "Cannot prepend to Digit.Four!"
+module Digit =
+    let ofList = function
+        | [a] -> One(a)
+        | [a; b] -> Two(a, b)
+        | [a; b; c] -> Three(a, b, c)
+        | [a; b; c; d] -> Four(a, b, c, d)
+        | _ -> failwith "Only lists of length 1 to 4 accepted!"
 
-        member me.Prepend x =
-            match me with
-            | One a -> Two(x, a)
-            | Two(a, b) -> Three(x, a, b)
-            | Three(a, b, c) -> Four(x, a, b, c)
-            | _ -> failwith "Cannot prepend to Digit.Four!"
+    let toList = function
+        | One a -> [a]
+        | Two(a, b) -> [a; b]
+        | Three(a, b, c) -> [a; b; c]
+        | Four(a, b, c, d) -> [a; b; c; d]
 
-    [<NoComparison>]
-    [<NoEquality>]
-    type FingerTree<'a> =
-        | Empty
-        | Single of 'a
-        | Deep of Digit<'a> * FingerTree<Node<'a>> * Digit<'a>
+    let append x = function
+        | One a -> Two(a, x)
+        | Two(a, b) -> Three(a, b, x)
+        | Three(a, b, c) -> Four(a, b, c, x)
+        | _ -> failwith "Cannot append to Digit.Four!"
 
-    type Digit<'a> with
-        member me.Promote () =
-            match me with
-            | One a -> Single a
-            | Two(a, b) -> Deep(One a, Empty, One b)
-            | Three(a, b, c) -> Deep(One a, Empty, Two(b, c))
-            | Four(a, b, c, d) -> Deep(Two(a, b), Empty, Two(c, d))
+    let prepend x = function
+        | One a -> Two(x, a)
+        | Two(a, b) -> Three(x, a, b)
+        | Three(a, b, c) -> Four(x, a, b, c)
+        | _ -> failwith "Cannot prepend to Digit.Four!"
 
-    type View<'a> = Nil | View of 'a * FingerTree<'a>
+    let promote = function
+        | One a -> Single a
+        | Two(a, b) -> Deep(One a, Empty, One b)
+        | Three(a, b, c) -> Deep(Two(a, b), Empty, One(c))
+        | Four(a, b, c, d) -> Deep(Two(a, b), Empty, Two(c, d))
 
-type private Polymorphy() =
-    static member ViewL (this:FingerTree<'a>) : View<'a> =
-        match this with
+type View<'a> = Nil | View of 'a * FingerTree<'a>
+
+module Finger =
+    let (|SplitFirst|_|) = function
+        | Two(a, b) -> Some(a, One b)
+        | Three(a, b, c) -> Some(a, Two(b, c))
+        | Four(a, b, c, d) -> Some(a, Three(b, c, d))
+        | _ -> None
+
+    let (|SplitLast|_|) = function
+        | Two(a, b) -> Some(One a, b)
+        | Three(a, b, c) -> Some(Two(a, b), c)
+        | Four(a, b, c, d) -> Some(Three(a, b, c), d)
+        | _ -> None
+
+    let rec viewl<'a> : FingerTree<'a> -> View<'a> = function
         | Empty -> Nil
         | Single x -> View(x, Empty)
         | Deep(One x, deeper, suffix) ->
             let rest =
-                match Polymorphy.ViewL deeper with
-                | Nil ->
-                    suffix.Promote()
-                | View (node:Node<'a>, rest) ->
-                    let prefix = node.ToList() |> Digit<_>.OfList
-                    Deep(prefix, rest, suffix)
-            View(x, rest)
-        | Deep(prefix, deeper, suffix) ->
-            match prefix.ToList() with
-            | x::xs ->
-                View(x, Deep(Digit<_>.OfList xs, deeper, suffix))
-            | _ -> invalidOp "Impossible!"
-(*
-    static member Append<'a> (z:'a) : FingerTree<'a> -> FingerTree<'a> = function
-        | Empty -> Single z
-        | Single y -> Deep(One y, Empty, One z)
-        | Deep(prefix, deeper, Four(v, w, x, y)) ->
-            Deep(prefix, Polymorphy.Append (Node3(v, w, x)) deeper, Two(y, z))
-        | Deep(prefix, deeper, suffix) ->
-            Deep(prefix, deeper, suffix.Append z)
-
-    static member Prepend<'a> (a:'a) : FingerTree<'a> -> FingerTree<'a> = function
-        | Empty -> Single a
-        | Single b -> Deep(One a, Empty, One b)
-        | Deep(Four(b, c, d, e), deeper, suffix) ->
-            Deep(Two(a, b), Polymorphy.Prepend (Node3(c, d, e)) deeper, suffix)
-        | Deep(prefix, deeper, suffix) ->
-            Deep(prefix.Prepend a, deeper, suffix)
-*)
-
-
-module Finger =
-    let rec viewl : FingerTree<'a> -> View<'a> = function
-        | Empty -> Nil
-        | Single x -> View(x, Empty)
-        | Deep(One x, deeper(*:FingerTree<'a>/FingerTree<Node<'a>>*), suffix) ->
-            let rest =
                 match viewl deeper with
                 | Nil ->
-                    suffix.Promote()
-                | View (node(*:Node<'a>*), rest) ->
-                    let prefix = node.ToList() |> Digit<_>.OfList
+                    suffix |> Digit.promote
+                | View (node, rest) ->
+                    let prefix = node |> Node.toList |> Digit.ofList
                     Deep(prefix, rest, suffix)
             View(x, rest)
-        | Deep(prefix, deeper, suffix) ->
-            match prefix.ToList() with
-            | x::xs ->
-                View(x, Deep(Digit<_>.OfList xs, deeper, suffix))
-            | _ -> failwith "Impossible!"
+        | Deep(SplitFirst(x, shorter), deeper, suffix) ->
+            View(x, Deep(shorter, deeper, suffix))
+        | _ -> failwith "Impossible!"
+
+    let rec viewr<'a> : FingerTree<'a> -> View<'a> = function
+        | Empty -> Nil
+        | Single x -> View(x, Empty)
+        | Deep(prefix, deeper, One x) ->
+            let rest =
+                match viewr deeper with
+                | Nil ->
+                    prefix |> Digit.promote
+                | View (node, rest) ->
+                    let suffix = node |> Node.toList |> Digit.ofList
+                    Deep(prefix, rest, suffix)
+            View(x, rest)
+        | Deep(prefix, deeper, SplitLast(shorter, x)) ->
+            View(x, Deep(prefix, deeper, shorter))
+        | _ -> failwith "Impossible!"
 
     let empty = Empty
+
+    let isEmpty tree =
+        match viewl tree with
+        | Nil -> true
+        | _ -> false
+
+    let head tree =
+        match viewl tree with
+        | View(h, _) -> h
+        | _ -> invalidArg "tree" Errors.treeIsEmpty
+
+    let tail tree =
+        match viewl tree with
+        | View(_, t) -> t
+        | _ -> invalidArg "tree" Errors.treeIsEmpty
 
     let rec append<'a> (z:'a) : FingerTree<'a> -> FingerTree<'a> = function
         | Empty -> Single z
@@ -130,7 +132,7 @@ module Finger =
         | Deep(prefix, deeper, Four(v, w, x, y)) ->
             Deep(prefix, append (Node3(v, w, x)) deeper, Two(y, z))
         | Deep(prefix, deeper, suffix) ->
-            Deep(prefix, deeper, suffix.Append z)
+            Deep(prefix, deeper, suffix |> Digit.append z)
 
     let rec prepend<'a> (a:'a) : FingerTree<'a> -> FingerTree<'a> = function
         | Empty -> Single a
@@ -138,28 +140,15 @@ module Finger =
         | Deep(Four(b, c, d, e), deeper, suffix) ->
             Deep(Two(a, b), prepend (Node3(c, d, e)) deeper, suffix)
         | Deep(prefix, deeper, suffix) ->
-            Deep(prefix.Prepend a, deeper, suffix)
+            Deep(prefix |> Digit.prepend a, deeper, suffix)
 
-    type Foo<'a> = Foo of ('a -> 'a)
+module Exp =
+    let namel =
+        "Tobias Becker".ToCharArray()
+        |> Array.fold (fun acc c -> acc |> Finger.append c) Finger.empty
+
+    let namer =
+        Finger.empty
+        |> Array.foldBack (fun c acc -> acc |> Finger.prepend c) ("Tobias Becker".ToCharArray())
 
 
-
-
-
-//module Exp =
-//    let layer2 =
-//        let isList = "is".ToCharArray() |> Array.toList
-//        let prefix = Two(Node<_>.OfList isList, Node<_>.OfList isList)
-//        let suffix = Two(Node<_>.OfList ['n'; 'o'; 't'], Node<_>.OfList ['a'; 't'])
-//        Deep(prefix, Empty, suffix)
-//
-//    let layer1 =
-//        let prefix = Digit<_>.OfList ['t'; 'h']
-//        let suffix = Digit<_>.OfList ['r'; 'e'; 'e']
-//        Deep(prefix, layer2 , suffix)
-//
-//    let name =
-//        "Tobias Becker".ToCharArray()
-//        |> Array.fold (fun acc c -> acc |> Finger.append c) Finger.empty
-//
-//
