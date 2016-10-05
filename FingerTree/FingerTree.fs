@@ -73,7 +73,7 @@ module Digit =
         | Three(a, b, c) -> Deep(Two(a, b), Empty, One(c))
         | Four(a, b, c, d) -> Deep(Two(a, b), Empty, Two(c, d))
 
-type View<'a> = Nil | View of 'a * FingerTree<'a>
+type View<'a> = Nil | View of 'a * Lazy<FingerTree<'a>>
 
 module Finger =
     let (|SplitFirst|_|) = function
@@ -90,34 +90,36 @@ module Finger =
 
     let rec viewl<'a> : FingerTree<'a> -> View<'a> = function
         | Empty -> Nil
-        | Single x -> View(x, Empty)
+        | Single x -> View(x, Lazy.CreateFromValue Empty)
         | Deep(One x, deeper, suffix) ->
-            let rest =
+            let rest = lazy (
                 match viewl deeper with
                 | Nil ->
                     suffix |> Digit.promote
-                | View (node, rest) ->
+                | View (node, Lazy rest) ->
                     let prefix = node |> Node.toList |> Digit.ofList
                     Deep(prefix, rest, suffix)
+            )
             View(x, rest)
         | Deep(SplitFirst(x, shorter), deeper, suffix) ->
-            View(x, Deep(shorter, deeper, suffix))
+            View(x, Lazy.CreateFromValue(Deep(shorter, deeper, suffix)))
         | _ -> failwith Errors.patternMatchImpossible
 
     let rec viewr<'a> : FingerTree<'a> -> View<'a> = function
         | Empty -> Nil
-        | Single x -> View(x, Empty)
+        | Single x -> View(x, Lazy.CreateFromValue Empty)
         | Deep(prefix, deeper, One x) ->
-            let rest =
+            let rest = lazy (
                 match viewr deeper with
                 | Nil ->
                     prefix |> Digit.promote
-                | View (node, rest) ->
+                | View (node, Lazy rest) ->
                     let suffix = node |> Node.toList |> Digit.ofList
                     Deep(prefix, rest, suffix)
+            )
             View(x, rest)
         | Deep(prefix, deeper, SplitLast(shorter, x)) ->
-            View(x, Deep(prefix, deeper, shorter))
+            View(x, Lazy.CreateFromValue(Deep(prefix, deeper, shorter)))
         | _ -> failwith Errors.patternMatchImpossible
 
     let empty = Empty
@@ -134,7 +136,7 @@ module Finger =
 
     let tail tree =
         match viewl tree with
-        | View(_, t) -> t
+        | View(_, Lazy t) -> t
         | _ -> invalidArg "tree" Errors.treeIsEmpty
 
     let last tree =
@@ -180,7 +182,7 @@ module Finger =
     let rec toList tree =
         match viewl tree with
         | Nil -> []
-        | View(head, tail) -> head::(toList tail)
+        | View(head, Lazy tail) -> head::(toList tail)
 
     // http://andrew.gibiansky.com/blog/haskell/finger-trees/#Concatenation
     let rec concatWithMiddle<'a> : FingerTree<'a> * 'a list * FingerTree<'a> -> FingerTree<'a> = function
