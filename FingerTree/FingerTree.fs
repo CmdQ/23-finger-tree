@@ -146,13 +146,6 @@ module Finger =
         | Deep(prefix, deeper, suffix) ->
             Deep(prefix |> Digit.prepend a, deeper, suffix)
 
-module Exp =
-    let namel =
-        "Tobias Becker".ToCharArray()
-        |> Array.fold (fun acc c -> acc |> Finger.append c) Finger.empty
 
-    let namer =
-        Finger.empty
-        |> Array.foldBack (fun c acc -> acc |> Finger.prepend c) ("Tobias Becker".ToCharArray())
 
 
