@@ -39,7 +39,7 @@ type Digit<'a> =
 type FingerTree<'a> =
     | Empty
     | Single of 'a
-    | Deep of Digit<'a> * FingerTree<Node<'a>> * Digit<'a>
+    | Deep of Digit<'a> * Lazy<FingerTree<Node<'a>>> * Digit<'a>
 
 module Digit =
     let ofList = function
@@ -69,9 +69,9 @@ module Digit =
 
     let promote = function
         | One a -> Single a
-        | Two(a, b) -> Deep(One a, Empty, One b)
-        | Three(a, b, c) -> Deep(Two(a, b), Empty, One(c))
-        | Four(a, b, c, d) -> Deep(Two(a, b), Empty, Two(c, d))
+        | Two(a, b) -> Deep(One a, Lazy.CreateFromValue Empty, One b)
+        | Three(a, b, c) -> Deep(Two(a, b), Lazy.CreateFromValue Empty, One(c))
+        | Four(a, b, c, d) -> Deep(Two(a, b), Lazy.CreateFromValue Empty, Two(c, d))
 
 type View<'a> = Nil | View of 'a * Lazy<FingerTree<'a>>
 
@@ -93,16 +93,16 @@ module Finger =
         | Single x -> View(x, Lazy.CreateFromValue Empty)
         | Deep(One x, deeper, suffix) ->
             let rest = lazy (
-                match viewl deeper with
+                match viewl deeper.Value with
                 | Nil ->
                     suffix |> Digit.promote
-                | View (node, Lazy rest) ->
+                | View (node, lazyRest) ->
                     let prefix = node |> Node.toList |> Digit.ofList
-                    Deep(prefix, rest, suffix)
+                    Deep(prefix, lazyRest, suffix)
             )
             View(x, rest)
         | Deep(SplitFirst(x, shorter), deeper, suffix) ->
-            View(x, Lazy.CreateFromValue(Deep(shorter, deeper, suffix)))
+            View(x, lazy Deep(shorter, deeper, suffix))
         | _ -> failwith Errors.patternMatchImpossible
 
     let rec viewr<'a> : FingerTree<'a> -> View<'a> = function
@@ -110,16 +110,16 @@ module Finger =
         | Single x -> View(x, Lazy.CreateFromValue Empty)
         | Deep(prefix, deeper, One x) ->
             let rest = lazy (
-                match viewr deeper with
+                match viewr deeper.Value with
                 | Nil ->
                     prefix |> Digit.promote
-                | View (node, Lazy rest) ->
+                | View (node, lazyRest) ->
                     let suffix = node |> Node.toList |> Digit.ofList
-                    Deep(prefix, rest, suffix)
+                    Deep(prefix, lazyRest, suffix)
             )
             View(x, rest)
         | Deep(prefix, deeper, SplitLast(shorter, x)) ->
-            View(x, Lazy.CreateFromValue(Deep(prefix, deeper, shorter)))
+            View(x, lazy Deep(prefix, deeper, shorter))
         | _ -> failwith Errors.patternMatchImpossible
 
     let empty = Empty
@@ -146,17 +146,17 @@ module Finger =
 
     let rec append<'a> (z:'a) : FingerTree<'a> -> FingerTree<'a> = function
         | Empty -> Single z
-        | Single y -> Deep(One y, Empty, One z)
-        | Deep(prefix, deeper, Four(v, w, x, y)) ->
-            Deep(prefix, append (Node3(v, w, x)) deeper, Two(y, z))
+        | Single y -> Deep(One y, Lazy.CreateFromValue Empty, One z)
+        | Deep(prefix, Lazy deeper, Four(v, w, x, y)) ->
+            Deep(prefix, lazy append (Node3(v, w, x)) deeper, Two(y, z))
         | Deep(prefix, deeper, suffix) ->
             Deep(prefix, deeper, suffix |> Digit.append z)
 
     let rec prepend<'a> (a:'a) : FingerTree<'a> -> FingerTree<'a> = function
         | Empty -> Single a
-        | Single b -> Deep(One a, Empty, One b)
-        | Deep(Four(b, c, d, e), deeper, suffix) ->
-            Deep(Two(a, b), prepend (Node3(c, d, e)) deeper, suffix)
+        | Single b -> Deep(One a, Lazy.CreateFromValue Empty, One b)
+        | Deep(Four(b, c, d, e), Lazy deeper, suffix) ->
+            Deep(Two(a, b), lazy prepend (Node3(c, d, e)) deeper, suffix)
         | Deep(prefix, deeper, suffix) ->
             Deep(prefix |> Digit.prepend a, deeper, suffix)
 
@@ -170,7 +170,7 @@ module Finger =
         match tree with
         | Single single ->
             yield single
-        | Deep(prefix, deeper, suffix) ->
+        | Deep(prefix, Lazy deeper, suffix) ->
             yield! prefix |> Digit.toList
             yield! deeper |> toSeq |> Seq.collect Node.toList
             yield! suffix |> Digit.toList
@@ -193,10 +193,12 @@ module Finger =
         | left, List.Snoc(rest, right), Empty
         | left, rest, Single right -> concatWithMiddle(left, rest, Empty) |> append right
         | Deep(leftPrefix, leftDeeper, leftSuffix), middle, Deep(rightPrefix, rightDeeper, rightSuffix) ->
-            let leftList = leftSuffix |> Digit.toList
-            let rightList = rightPrefix |> Digit.toList
-            let middle' = leftList @ middle @ rightList |> Node.toNodeList
-            let deeper = concatWithMiddle(leftDeeper, middle', rightDeeper)
+            let deeper = lazy (
+                let leftList = leftSuffix |> Digit.toList
+                let rightList = rightPrefix |> Digit.toList
+                let middle' = leftList @ middle @ rightList |> Node.toNodeList
+                concatWithMiddle(leftDeeper.Value, middle', rightDeeper.Value)
+            )
             Deep(leftPrefix, deeper, rightSuffix)
 
     let concat left right = concatWithMiddle(left, [], right)
