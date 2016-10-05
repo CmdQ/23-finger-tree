@@ -130,6 +130,11 @@ module Finger =
         | View(_, t) -> t
         | _ -> invalidArg "tree" Errors.treeIsEmpty
 
+    let last tree =
+        match viewr tree with
+        | View(h, _) -> h
+        | _ -> invalidArg "tree" Errors.treeIsEmpty
+
     let rec append<'a> (z:'a) : FingerTree<'a> -> FingerTree<'a> = function
         | Empty -> Single z
         | Single y -> Deep(One y, Empty, One z)
