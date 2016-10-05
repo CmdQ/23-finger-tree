@@ -2,6 +2,10 @@
 
 module Errors =
     let treeIsEmpty = "The input tree was empty."
+    let digitAlreadyHas4Entries = "Cannot add to digit, because it already has maximum capacity."
+    let onlyList2or3Accepted = "Only lists of length 2 or 3 accepted!"
+    let onlyList1to4Accepted = "Only lists of length 1 to 4 accepted!"
+    let patternMatchImpossible = "Impossible!"
 
 type Node<'a> =
     | Node2 of 'a * 'a
@@ -11,7 +15,7 @@ module Node =
     let ofList = function
         | [a; b] -> Node2(a, b)
         | [a; b; c] -> Node3(a, b, c)
-        | _ -> failwith "Only lists of length 2 or 3 accepted!"
+        | _ -> failwith Errors.onlyList2or3Accepted
 
     let toList = function
         | Node2(a, b) -> [a; b]
@@ -36,7 +40,7 @@ module Digit =
         | [a; b] -> Two(a, b)
         | [a; b; c] -> Three(a, b, c)
         | [a; b; c; d] -> Four(a, b, c, d)
-        | _ -> failwith "Only lists of length 1 to 4 accepted!"
+        | _ -> failwith Errors.onlyList1to4Accepted
 
     let toList = function
         | One a -> [a]
@@ -48,13 +52,13 @@ module Digit =
         | One a -> Two(a, x)
         | Two(a, b) -> Three(a, b, x)
         | Three(a, b, c) -> Four(a, b, c, x)
-        | _ -> failwith "Cannot append to Digit.Four!"
+        | _ -> failwith Errors.digitAlreadyHas4Entries
 
     let prepend x = function
         | One a -> Two(x, a)
         | Two(a, b) -> Three(x, a, b)
         | Three(a, b, c) -> Four(x, a, b, c)
-        | _ -> failwith "Cannot prepend to Digit.Four!"
+        | _ -> failwith Errors.digitAlreadyHas4Entries
 
     let promote = function
         | One a -> Single a
@@ -91,7 +95,7 @@ module Finger =
             View(x, rest)
         | Deep(SplitFirst(x, shorter), deeper, suffix) ->
             View(x, Deep(shorter, deeper, suffix))
-        | _ -> failwith "Impossible!"
+        | _ -> failwith Errors.patternMatchImpossible
 
     let rec viewr<'a> : FingerTree<'a> -> View<'a> = function
         | Empty -> Nil
@@ -107,7 +111,7 @@ module Finger =
             View(x, rest)
         | Deep(prefix, deeper, SplitLast(shorter, x)) ->
             View(x, Deep(prefix, deeper, shorter))
-        | _ -> failwith "Impossible!"
+        | _ -> failwith Errors.patternMatchImpossible
 
     let empty = Empty
 
