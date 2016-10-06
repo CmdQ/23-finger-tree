@@ -1,4 +1,4 @@
-﻿module MyArbitraries
+﻿module CmdQ.Tests.MyArbitraries
 
 open FsCheck
 

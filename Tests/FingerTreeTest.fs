@@ -1,4 +1,4 @@
-﻿module FingerTreeTest
+﻿module CmdQ.Tests.FingerTreeTest
 
 open MyArbitraries
 open CmdQ
