@@ -6,37 +6,46 @@ open FsCheck
 open FsCheck.Experimental
 
 type TestType = uint16
+type ModelType = ResizeArray<TestType>
+type SutType = FingerTree<TestType>
 
 let spec =
     let prepend (what:TestType) =
-        { new Operation<FingerTree<TestType>, ResizeArray<TestType>>() with
-            override __.Run m =
-                m.Insert(0, what)
-                m
-            override __.Check(c, m) =
-                let res = c |> Finger.prepend what
-                let actl = res |> Finger.toList
-                let modl = m |> Seq.toList
-                actl = modl
-                    |@ sprintf "prepend: model = %A, actual = %A" modl actl
-            override __.ToString() = "prepend"
-        }
-    let create initial =
-        { new Setup<FingerTree<TestType>, ResizeArray<TestType>>() with
-            override __.Actual () = initial |> Finger.ofList
-            override __.Model () = initial |> ResizeArray
+        { new Operation<SutType, ModelType>() with
+            override __.Run model =
+                // Also tried returning the same instance.
+                let copy = model |> ResizeArray
+                copy.Insert(0, what)
+                copy
+
+            override __.Check(sut, model) =
+                let sutList = sut |> Finger.toList
+                let newSut = sut |> Finger.prepend what
+                let newSutList = newSut |> Finger.toList
+                let modelList = model |> Seq.toList
+                let areEqual = newSutList = modelList
+                areEqual |@ sprintf "prepend: model = %A, actual = %A (incoming was %A)" modelList newSutList sutList
+
+            override __.ToString() = sprintf "prepend %A" what
         }
 
-    let rndNum () : Gen<TestType> =
-        Gen.choose(int TestType.MinValue, int TestType.MaxValue)
-        |> Gen.map uint16
+    let create (initial:ModelType) =
+        { new Setup<SutType, ModelType>() with
+            override __.Actual () = initial |> Finger.ofSeq
 
-    { new Machine<FingerTree<TestType>, ResizeArray<TestType>>() with
+            override __.Model () = initial //|> ResizeArray // Also tried this.
+        }
+
+    let rndNum () : Gen<TestType> = Arb.from<uint16> |> Arb.toGen
+
+    { new Machine<SutType, ModelType>() with
         override __.Setup =
             rndNum()
             |> Gen.listOf
+            |> Gen.map ResizeArray
             |> Gen.map create
             |> Arb.fromGen
+
         override __.Next _ = gen {
             let! cmd = Gen.elements [prepend]
             let! num = rndNum()
