@@ -36,6 +36,7 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
     <DocumentationFile>bin\Release\Tests.XML</DocumentationFile>
     <Prefer32Bit>false</Prefer32Bit>
+    <StartArguments>--benchmark</StartArguments>
   </PropertyGroup>
   <PropertyGroup>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
@@ -58,13 +59,14 @@
     <Compile Include="MyArbitraries.fs" />
     <Compile Include="FingerTreeTest.fs" />
     <Compile Include="FingerTreeModelTest.fs" />
+    <Compile Include="Benchmark.fs" />
     <Compile Include="Program.fs" />
     <None Include="App.config" />
     <Content Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FsCheck">
-      <HintPath>..\FingerTree\packages\FsCheck.2.6.1\lib\net45\FsCheck.dll</HintPath>
+      <HintPath>..\FingerTree\packages\FsCheck.2.6.2\lib\net45\FsCheck.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="FSharp.Core">
@@ -79,7 +81,15 @@
       <HintPath>..\FingerTree\packages\Fuchu.FsCheck.1.0.3.0\lib\Fuchu.FsCheck.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="Fuchu.PerfUtil">
+      <HintPath>..\FingerTree\packages\Fuchu.PerfUtil.1.0.3.0\lib\Fuchu.PerfUtil.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="mscorlib" />
+    <Reference Include="PerfUtil">
+      <HintPath>..\FingerTree\packages\PerfUtil.0.1.8\lib\net40\PerfUtil.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Numerics" />

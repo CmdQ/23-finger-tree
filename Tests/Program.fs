@@ -5,4 +5,7 @@ open FsCheck
 [<EntryPoint>]
 let main argv =
     Arb.registerByType typeof<MyArbitraries.PosInt>.DeclaringType |> ignore
-    Tests.defaultMainThisAssembly argv
+    let re = Tests.defaultMainThisAssembly argv
+    if Array.contains "--benchmark" argv then
+        Check.Quick Benchmark.benchmarks |> ignore
+    re
