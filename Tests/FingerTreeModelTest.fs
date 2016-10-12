@@ -7,54 +7,66 @@ open FsCheck.Experimental
 
 type TestType = uint16
 type ModelType = ResizeArray<TestType>
-type SutType = FingerTree<TestType>
+type SutType = FingerTree<TestType> ref
 
-let spec =
+let fingerTreeSpec =
+    let check sut model changer delta =
+        sut := !sut |> changer delta
+        let a = !sut |> Finger.toSeq
+        let areEqual =
+            Seq.zip a model
+            |> Seq.forall (fun ab -> ab ||> (=))
+        areEqual |@ sprintf "prepend: %A" delta
+
     let prepend (what:TestType) =
         { new Operation<SutType, ModelType>() with
             override __.Run model =
-                // Also tried returning the same instance.
                 let copy = model |> ResizeArray
                 copy.Insert(0, what)
                 copy
 
-            override __.Check(sut, model) =
-                let sutList = sut |> Finger.toList
-                let newSut = sut |> Finger.prepend what
-                let newSutList = newSut |> Finger.toList
-                let modelList = model |> Seq.toList
-                let areEqual = newSutList = modelList
-                areEqual |@ sprintf "prepend: model = %A, actual = %A (incoming was %A)" modelList newSutList sutList
+            override __.Check(sut, model) = check sut model Finger.prepend what
 
             override __.ToString() = sprintf "prepend %A" what
         }
 
-    let create (initial:ModelType) =
-        { new Setup<SutType, ModelType>() with
-            override __.Actual () = initial |> Finger.ofSeq
+    let append (what:TestType) =
+        { new Operation<SutType, ModelType>() with
+            override __.Run model =
+                let copy = model |> ResizeArray
+                copy.Add what
+                copy
 
-            override __.Model () = initial //|> ResizeArray // Also tried this.
+            override __.Check(sut, model) = check sut model Finger.append what
+
+            override __.ToString() = sprintf "append %A" what
         }
 
-    let rndNum () : Gen<TestType> = Arb.from<uint16> |> Arb.toGen
+    let create (initial) =
+        { new Setup<SutType, ModelType>() with
+            override __.Actual () = ref (Finger.ofArray initial)
+
+            override __.Model () = initial |> ResizeArray
+        }
+
+    let rndNum () = Arb.from<TestType> |> Arb.toGen
 
     { new Machine<SutType, ModelType>() with
         override __.Setup =
             rndNum()
-            |> Gen.listOf
-            |> Gen.map ResizeArray
+            |> Gen.arrayOf
             |> Gen.map create
             |> Arb.fromGen
 
         override __.Next _ = gen {
-            let! cmd = Gen.elements [prepend]
+            let! cmd = Gen.elements [append; prepend]
             let! num = rndNum()
             return cmd num
         }
     }
 
 [<Tests>]
-let test =
-    [spec]
+let modelTests =
+    [fingerTreeSpec]
     |> List.map (StateMachine.toProperty >> testProperty "Finger tree")
     |> testList "Model tests"
