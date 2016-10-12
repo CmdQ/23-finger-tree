@@ -170,4 +170,7 @@ module Finger =
 
     let toArray<'a> = toSeq<'a> >> Seq.toArray
 
-    let toList<'a> = toSeq<'a> >> Seq.toList
+    let rec toList tree =
+        match viewl tree with
+        | Nil -> []
+        | View(head, tail) -> head::(toList tail)

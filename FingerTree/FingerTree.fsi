@@ -25,6 +25,6 @@ namespace CmdQ
     val ofSeq<'a> : seq:seq<'a> -> FingerTree<'a>
     val toSeq : tree:FingerTree<'a> -> seq<'a>
     val toArray<'a> : (FingerTree<'a> -> 'a [])
-    val toList<'a> : (FingerTree<'a> -> 'a list)
+    val toList : tree:FingerTree<'a> -> 'a list
   end
 
