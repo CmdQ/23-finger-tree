@@ -42,7 +42,7 @@ type WithList() =
 type WithResizeArray() =
     inherit NamedTest("ResizeArray")
 
-    let mutable ra = ResizeArray()
+    let ra = ResizeArray()
 
     interface ISubject with
         member __.InsertOrAppend what =
