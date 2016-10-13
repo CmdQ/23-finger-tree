@@ -16,7 +16,7 @@ type NamedTest(name) =
     interface ITestable with
         member __.Init () = ()
         member __.Fini () = ()
-        member x.Name = name
+        member __.Name = name
 
 type Subject() =
     inherit NamedTest("FingerTree")
@@ -55,13 +55,13 @@ let alts:ISubject list = [WithList(); WithResizeArray()]
 let subj = Subject() :> ISubject
 
 let plays : PerfTest<ISubject> list = [
-    perfTest "Insert at beginning or end" (fun (s:ISubject) ->
+    perfTest "Insert at beginning or end" (fun s ->
         let rand = Random(23)
-        for i = 1 to 100000 do
+        for i = 1 to 10000 do
             rand.Next(i) |> s.InsertOrAppend) 10
 ]
 
 let benchmarks =
     testList "Benchmarks" [
-        testPerfImpls "foo" subj alts plays
+        testPerfImpls "Finger Tree" subj alts plays
     ]
