@@ -21,6 +21,13 @@ module Node =
         | Node2(a, b) -> [a; b]
         | Node3(a, b, c) -> [a; b; c]
 
+    let rec toNodeList = function
+        | []
+        | [_] -> invalidOp "No enough elements."
+        | [x; y] -> [Node2(x, y)]
+        | [x; y; z] -> [Node3(x, y, z)]
+        | x::y::rest -> Node2(x, y)::(toNodeList rest)
+
 type Digit<'a> =
     | One of 'a
     | Two of 'a * 'a
@@ -174,3 +181,20 @@ module Finger =
         match viewl tree with
         | Nil -> []
         | View(head, tail) -> head::(toList tail)
+
+    // http://andrew.gibiansky.com/blog/haskell/finger-trees/#Concatenation
+    let rec concatWithMiddle<'a> : FingerTree<'a> * 'a list * FingerTree<'a> -> FingerTree<'a> = function
+        | Empty, [], only
+        | only, [], Empty -> only
+        | Empty, left::rest, right
+        | Single left, rest, right -> concatWithMiddle(Empty, rest, right) |> prepend left
+        | left, List.Snoc(rest, right), Empty
+        | left, rest, Single right -> concatWithMiddle(left, rest, Empty) |> append right
+        | Deep(leftPrefix, leftDeeper, leftSuffix), middle, Deep(rightPrefix, rightDeeper, rightSuffix) ->
+            let leftList = leftSuffix |> Digit.toList
+            let rightList = rightPrefix |> Digit.toList
+            let middle' = leftList @ middle @ rightList |> Node.toNodeList
+            let deeper = concatWithMiddle(leftDeeper, middle', rightDeeper)
+            Deep(leftPrefix, deeper, rightSuffix)
+
+    let concat left right = concatWithMiddle(left, [], right)
