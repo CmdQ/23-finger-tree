@@ -57,7 +57,7 @@ let subj = Subject() :> ISubject
 let plays : PerfTest<ISubject> list = [
     perfTest "Insert at beginning or end" (fun s ->
         let rand = Random(23)
-        for i = 1 to 10000 do
+        for i = 1 to 4000 do
             rand.Next(i) |> s.InsertOrAppend) 10
 ]
 
