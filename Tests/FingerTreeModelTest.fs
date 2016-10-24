@@ -9,16 +9,15 @@ type TestType = uint16
 type ModelType = ResizeArray<TestType>
 type SutType = FingerTree<TestType> ref
 
+module Finger =
+    let sequenceEqual seq tree =
+        Seq.zip (Finger.toSeq tree) seq
+        |> Seq.forall (fun ab -> ab ||> (=))
+
 let fingerTreeSpec =
     let check sut model op changer delta =
-        let before = !sut |> Finger.toList
         sut := !sut |> changer delta
-        let after = !sut |> Finger.toList
-        let a = !sut |> Finger.toSeq
-        let areEqual =
-            Seq.zip a model
-            |> Seq.forall (fun ab -> ab ||> (=))
-        areEqual |@ sprintf "%s: %A" op delta |@ sprintf "Tree%A -> Tree%A" before after
+        !sut |> Finger.sequenceEqual model |@ sprintf "%s: %A" op delta
 
     let prepend what =
         { new Operation<SutType, ModelType>() with
@@ -53,7 +52,9 @@ let fingerTreeSpec =
 
             override __.Check(sut, model) =
                 let right = Finger.ofList what
-                check sut model "concat" Finger.concat right
+                sut := Finger.concat !sut right
+                !sut |> Finger.sequenceEqual model
+                |> Prop.trivial (what.Length = 0)
 
             override __.ToString () = sprintf "concat %A" what
         }
@@ -81,11 +82,10 @@ let fingerTreeSpec =
                 return cmd num
             }
             let withList = gen {
-                let elm = Arb.from<TestType> |> Arb.toGen
-                let! list = Gen.listOf elm
+                let! list = Gen.listOf rndNum
                 return concat list
             }
-            Gen.oneof [withElement(*; withList*)]
+            Gen.oneof [withElement; withList]
     }
 
 [<Tests>]
