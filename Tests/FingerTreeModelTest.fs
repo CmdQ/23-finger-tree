@@ -75,6 +75,37 @@ let fingerTreeSpec =
             override __.ToString () = sprintf "concatLeft %A" what
         }
 
+    let collectAddEnd (f:_ -> #seq<TestType>) what =
+        { new Operation<SutType, ModelType>() with
+            override __.Run model =
+                let transformed = what |> Seq.collect f
+                let copy = model |> ResizeArray
+                copy.AddRange transformed
+                copy
+
+            override __.Check(sut, model) =
+                let add = what |> Finger.collect (f >> Finger.ofSeq)
+                sut := Finger.concat !sut add
+                !sut |> Finger.sequenceEqual model
+                |> Prop.trivial (Seq.isEmpty what)
+
+            override __.ToString() = sprintf "collectAddEnd %A" what
+        }
+
+    let collectReplace (f:_ -> #seq<TestType>) what =
+        { new Operation<SutType, ModelType>() with
+            override __.Run model =
+                let transformed = what |> Seq.collect f
+                ResizeArray(transformed)
+
+            override __.Check(sut, model) =
+                sut := what |> Finger.collect (f >> Finger.ofSeq)
+                !sut |> Finger.sequenceEqual model
+                |> Prop.trivial (Seq.isEmpty what)
+
+            override __.ToString() = sprintf "collectReplace %A" what
+        }
+
     let create (initial) =
         { new Setup<SutType, ModelType>() with
             override __.Actual () = ref (Finger.ofArray initial)
@@ -102,7 +133,13 @@ let fingerTreeSpec =
                 let! list = Gen.listOf rndNum
                 return cmd list
             }
-            Gen.oneof [withElement; withList]
+            let forCollect = gen {
+                let! cmd = Gen.elements [collectAddEnd; collectReplace]
+                let! f = Arb.from<TestType -> TestType list> |> Arb.toGen
+                let! list = Gen.listOf rndNum
+                return cmd f list
+            }
+            Gen.oneof [withElement; withList; forCollect]
     }
 
 [<Tests>]
