@@ -198,3 +198,5 @@ module Finger =
             Deep(leftPrefix, deeper, rightSuffix)
 
     let concat left right = concatWithMiddle(left, [], right)
+
+    let collect mapping = Seq.map mapping >> Seq.fold concat empty
