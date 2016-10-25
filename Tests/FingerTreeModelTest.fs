@@ -43,7 +43,7 @@ let fingerTreeSpec =
             override __.ToString () = sprintf "append %A" what
         }
 
-    let concat what =
+    let concatRight what =
         { new Operation<SutType, ModelType>() with
             override __.Run model =
                 let copy = model |> ResizeArray
@@ -56,7 +56,23 @@ let fingerTreeSpec =
                 !sut |> Finger.sequenceEqual model
                 |> Prop.trivial (what.Length = 0)
 
-            override __.ToString () = sprintf "concat %A" what
+            override __.ToString () = sprintf "concatRight %A" what
+        }
+
+    let concatLeft what =
+        { new Operation<SutType, ModelType>() with
+            override __.Run model =
+                let copy = model |> ResizeArray
+                copy.InsertRange(0, what)
+                copy
+
+            override __.Check(sut, model) =
+                let left = Finger.ofList what
+                sut := Finger.concat left !sut
+                !sut |> Finger.sequenceEqual model
+                |> Prop.trivial (what.Length = 0)
+
+            override __.ToString () = sprintf "concatLeft %A" what
         }
 
     let create (initial) =
@@ -82,8 +98,9 @@ let fingerTreeSpec =
                 return cmd num
             }
             let withList = gen {
+                let! cmd = Gen.elements [concatLeft; concatRight]
                 let! list = Gen.listOf rndNum
-                return concat list
+                return cmd list
             }
             Gen.oneof [withElement; withList]
     }
