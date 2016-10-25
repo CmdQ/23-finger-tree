@@ -18,8 +18,8 @@ namespace CmdQ
     val head : tree:FingerTree<'a> -> 'a
     val last : tree:FingerTree<'a> -> 'a
     val tail : tree:FingerTree<'a> -> FingerTree<'a>
-    val append : z:'a -> _arg1:FingerTree<'a> -> FingerTree<'a>
-    val prepend : a:'a -> _arg1:FingerTree<'a> -> FingerTree<'a>
+    val append : z:'a -> tree:FingerTree<'a> -> FingerTree<'a>
+    val prepend : a:'a -> tree:FingerTree<'a> -> FingerTree<'a>
     val concat : left:FingerTree<'a> -> right:FingerTree<'a> -> FingerTree<'a>
     val collect : mapping:('a -> FingerTree<'b>) -> (seq<'a> -> FingerTree<'b>)
     val ofList<'a> : list:'a list -> FingerTree<'a>
