@@ -1,67 +1,172 @@
 ﻿module CmdQ.Tests.Benchmark
 
 open CmdQ
-open Fuchu
-open Fuchu.FuchuPerfUtil
-open PerfUtil
 open System
-
-type ISubject =
-    inherit ITestable
-
-    abstract member InsertOrAppend : int -> unit
+open System.Diagnostics
 
 [<AbstractClass>]
-type NamedTest(name) =
-    interface ITestable with
-        member __.Init () = ()
-        member __.Fini () = ()
-        member __.Name = name
+type Benchmark(name) =
+    let mutable counter = 0
 
-type Subject() =
-    inherit NamedTest("FingerTree")
+    abstract member Init:unit -> unit
+    default __.Init () = counter <- 0
 
-    let mutable tree = Finger.empty
+    abstract member OneStep:unit -> unit
+    default __.OneStep () = counter <- counter + 1
 
-    interface ISubject with
-        member __.InsertOrAppend what =
-            tree <- tree |> (if what % 2 = 0 then Finger.append else Finger.prepend) what
+    member __.Name = name
 
-type WithList() =
-    inherit NamedTest("Linked List")
+    member __.Count = counter
 
-    let mutable list = []
+type Alternatives = {
+    Benchmark:Benchmark
+    Alternatives:Benchmark list
+}
 
-    interface ISubject with
-        member __.InsertOrAppend what =
-            if what % 2 = 0 then
-                list <- list @ [what]
+type Timing = {
+    Name:string
+    Time:float
+    Ratio:float
+}
+
+type Comparison = {
+    BaseTime:float
+    Alternatives:Timing list
+}
+
+module InsertAppendOrDelete =
+    let modder = 3
+
+    type Finger() =
+        inherit Benchmark("Insert or append with Finger") with
+            let mutable rand = Random(23)
+            let mutable data = CmdQ.Finger.empty
+            let mutable size = 0
+
+            override __.Init () =
+                rand <- Random(23)
+                data <- CmdQ.Finger.empty
+                size <- 0
+
+            override __.OneStep () =
+                base.OneStep()
+                let num = rand.Next()
+                if num % modder = 0 then
+                    data <- data |> Finger.prepend num
+                    size <- size + 1
+                elif num % modder = 1 && size > 0 then
+                    data <- data |> Finger.tail
+                    size <- size - 1
+                else
+                    data <- data |> Finger.append num
+                    size <- size + 1
+
+    type List() =
+        inherit Benchmark("Insert or append with ResizeArray") with
+            let mutable rand = Random(23)
+            let mutable data = ResizeArray()
+
+            override __.Init () =
+                rand <- Random(23)
+                data <- ResizeArray()
+
+            override __.OneStep () =
+                base.OneStep()
+                let num = rand.Next()
+                if num % modder = 0 then
+                    data.Insert(0, num)
+                elif num % modder = 1 && data.Count > 0 then
+                    data.RemoveAt(data.Count - 1)
+                else
+                    data.Add num
+
+module Divisors =
+    let arrayLength = 8192
+
+    let factors x =
+        let rec factors acc d =
+            if d > 1 then
+                d - 1 |> factors (if x % d = 0 then d::acc else acc)
             else
-                list <- what::list
+                1::acc
+        x / 2 |> factors [x]
 
-type WithResizeArray() =
-    inherit NamedTest("ResizeArray")
+    type Finger() =
+        inherit Benchmark("Divisors with Finger")
 
-    let ra = ResizeArray()
+        let mutable stopped = 0
+        let mutable data = Finger.empty
 
-    interface ISubject with
-        member __.InsertOrAppend what =
-            if what % 2 = 0 then
-                ra.Add what
-            else
-                ra.Insert(0, what)
+        override __.Init () =
+            stopped <- 0
+            data <- Finger.empty
 
-let alts:ISubject list = [WithList(); WithResizeArray()]
-let subj = Subject() :> ISubject
+        override __.OneStep () =
+            base.OneStep()
+            let trials = Array.init arrayLength ((+)stopped)
+            let divisors =
+                trials
+                |> Array.Parallel.map (factors >> Finger.ofList)
+            let toAdd =
+                divisors
+                |> Finger.collect id
+            data <- Finger.concat data toAdd
 
-let plays : PerfTest<ISubject> list = [
-    perfTest "Insert at beginning or end" (fun s ->
-        let rand = Random(23)
-        for i = 1 to 4000 do
-            rand.Next(i) |> s.InsertOrAppend) 10
+    type Alternative() =
+        inherit Benchmark("Divisors with ResizeArray")
+
+        let mutable stopped = 0
+        let mutable data = ResizeArray()
+
+        override __.Init () =
+            stopped <- 0
+            data <- ResizeArray()
+
+        override __.OneStep () =
+            base.OneStep()
+            let trials = Array.init arrayLength ((+)stopped)
+            let divisors =
+                trials
+                |> Array.Parallel.map factors
+            for d in divisors do
+                data.AddRange d
+
+let run minTime (benchmark:Benchmark) =
+    benchmark.Init()
+    let rec run (sw:Stopwatch) =
+        benchmark.OneStep()
+        if sw.ElapsedMilliseconds < minTime || benchmark.Count = 0 then
+            run sw
+        else
+            float sw.ElapsedMilliseconds / float benchmark.Count
+    Stopwatch.StartNew() |> run
+
+let runVersus minTime benchmarks =
+    let runner = run minTime
+    let baseTime = benchmarks.Benchmark |> runner
+    let versus =
+        benchmarks.Alternatives
+        |> List.map (fun b ->
+            let time = b |> runner
+            { Name = b.Name; Time = time; Ratio = time / baseTime }
+        )
+    { BaseTime = baseTime; Alternatives = versus }
+
+let displayRun minTime benchmarks =
+    for b in benchmarks do
+        let time = run minTime b
+        printfn "%12f ms per iteration for %s." time b.Name
+
+let runVersusDisplay minTime benchmarks =
+    for b in benchmarks do
+        printfn "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
+        let times = runVersus minTime b
+        printfn "%12f ms per iteration (%.2f) for %s.\nAlternatives:" times.BaseTime 1.0 b.Benchmark.Name
+        for a in times.Alternatives do
+            printfn "%12f ms per iteration (%.2f) for %s (%s)." a.Time a.Ratio a.Name (if a.Ratio < 1.0 then "faster" else "slower")
+        printfn "----------------------------------------"
+
+let benchmarks:Alternatives list = [
+    { Benchmark = InsertAppendOrDelete.Finger(); Alternatives = [InsertAppendOrDelete.List()] }
+    { Benchmark = Divisors.Finger(); Alternatives = [Divisors.Alternative()] }
 ]
-
-let benchmarks =
-    testList "Benchmarks" [
-        testPerfImpls "Finger Tree" subj alts plays
-    ]
