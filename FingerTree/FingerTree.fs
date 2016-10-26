@@ -38,13 +38,15 @@ type Digit<'m, 'a
     | Three of 'a * 'a * 'a
     | Four of 'a * 'a * 'a * 'a
 
+    member me.ToList () =
+        match me with
+        | One a -> [a]
+        | Two(a, b) -> [a; b]
+        | Three(a, b, c) -> [a; b; c]
+        | Four(a, b, c, d) -> [a; b; c; d]
+
     interface IMeasured<'m, 'a> with
-        member me.Measure =
-            match me with
-            | One a -> fmeasure a
-            | Two(a, b) -> mconcat [a; b]
-            | Three(a, b, c) -> mconcat [a; b; c]
-            | Four(a, b, c, d) -> mconcat [a; b; c; d]
+        member me.Measure = me.ToList() |> mconcat
 
 [<NoComparison>]
 [<NoEquality>]
@@ -74,11 +76,7 @@ module Digit =
         | [a; b; c; d] -> Four(a, b, c, d)
         | _ -> failwith ErrorMessages.onlyList1to4Accepted
 
-    let toList = function
-        | One a -> [a]
-        | Two(a, b) -> [a; b]
-        | Three(a, b, c) -> [a; b; c]
-        | Four(a, b, c, d) -> [a; b; c; d]
+    let toList (digit:Digit<_, _>) = digit.ToList()
 
     let append x = function
         | One a -> Two(a, x)
