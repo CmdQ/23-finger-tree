@@ -202,6 +202,7 @@ module Finger =
                 concatWithMiddle(leftDeeper.Value, middle', rightDeeper.Value)
             )
             Deep(leftPrefix, deeper, rightSuffix)
+        | _ -> failwith Errors.patternMatchImpossible
 
     let concat left right = concatWithMiddle(left, [], right)
 
