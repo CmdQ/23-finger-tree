@@ -40,25 +40,25 @@ module InsertAppendOrDelete =
     type Finger() =
         inherit Benchmark("Insert or append with Finger") with
             let mutable rand = Random(23)
-            let mutable data = CmdQ.Finger.empty
+            let mutable data = CmdQ.FingerTree.empty
             let mutable size = 0
 
             override __.Init () =
                 rand <- Random(23)
-                data <- CmdQ.Finger.empty
+                data <- CmdQ.FingerTree.empty
                 size <- 0
 
             override __.OneStep () =
                 base.OneStep()
                 let num = rand.Next()
                 if num % modder = 0 then
-                    data <- data |> Finger.prepend num
+                    data <- data |> FingerTree.prepend num
                     size <- size + 1
                 elif num % modder = 1 && size > 0 then
-                    data <- data |> Finger.tail
+                    data <- data |> FingerTree.tail
                     size <- size - 1
                 else
-                    data <- data |> Finger.append num
+                    data <- data |> FingerTree.append num
                     size <- size + 1
 
     type List() =
@@ -95,22 +95,22 @@ module Divisors =
         inherit Benchmark("Divisors with Finger")
 
         let mutable stopped = 0
-        let mutable data = Finger.empty
+        let mutable data = FingerTree.empty
 
         override __.Init () =
             stopped <- 0
-            data <- Finger.empty
+            data <- FingerTree.empty
 
         override __.OneStep () =
             base.OneStep()
             let trials = Array.init arrayLength ((+)stopped)
             let divisors =
                 trials
-                |> Array.Parallel.map (factors >> Finger.ofList)
+                |> Array.Parallel.map (factors >> FingerTree.ofList)
             let toAdd =
                 divisors
-                |> Finger.collect id
-            data <- Finger.concat data toAdd
+                |> FingerTree.collect id
+            data <- FingerTree.concat data toAdd
 
     type Alternative() =
         inherit Benchmark("Divisors with ResizeArray")

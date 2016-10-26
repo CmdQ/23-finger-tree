@@ -75,7 +75,8 @@ module Digit =
 
 type View<'a> = Nil | View of 'a * Lazy<FingerTree<'a>>
 
-module Finger =
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+module FingerTree =
     let (|SplitFirst|_|) = function
         | Two(a, b) -> Some(a, One b)
         | Three(a, b, c) -> Some(a, Two(b, c))

@@ -12,7 +12,8 @@ namespace CmdQ
     private | Empty
             | Single of 'a
             | Deep of Digit<'a> * Lazy<FingerTree<Node<'a>>> * Digit<'a>
-  module Finger = begin
+  [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+  module FingerTree = begin
     val empty : FingerTree<'a>
     val isEmpty : tree:FingerTree<'a> -> bool
     val head : tree:FingerTree<'a> -> 'a

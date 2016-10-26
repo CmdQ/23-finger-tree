@@ -9,15 +9,15 @@ type TestType = uint16
 type ModelType = ResizeArray<TestType>
 type SutType = FingerTree<TestType> ref
 
-module Finger =
+module FingerTree =
     let sequenceEqual seq tree =
-        Seq.zip (Finger.toSeq tree) seq
+        Seq.zip (FingerTree.toSeq tree) seq
         |> Seq.forall (fun ab -> ab ||> (=))
 
 let fingerTreeSpec =
     let check sut model op changer delta =
         sut := !sut |> changer delta
-        !sut |> Finger.sequenceEqual model |@ sprintf "%s: %A" op delta
+        !sut |> FingerTree.sequenceEqual model |@ sprintf "%s: %A" op delta
 
     let prepend what =
         { new Operation<SutType, ModelType>() with
@@ -26,7 +26,7 @@ let fingerTreeSpec =
                 copy.Insert(0, what)
                 copy
 
-            override __.Check(sut, model) = check sut model "prepend" Finger.prepend what
+            override __.Check(sut, model) = check sut model "prepend" FingerTree.prepend what
 
             override __.ToString () = sprintf "prepend %A" what
         }
@@ -38,7 +38,7 @@ let fingerTreeSpec =
                 copy.Add what
                 copy
 
-            override __.Check(sut, model) = check sut model "append" Finger.append what
+            override __.Check(sut, model) = check sut model "append" FingerTree.append what
 
             override __.ToString () = sprintf "append %A" what
         }
@@ -51,9 +51,9 @@ let fingerTreeSpec =
                 copy
 
             override __.Check(sut, model) =
-                let right = Finger.ofList what
-                sut := Finger.concat !sut right
-                !sut |> Finger.sequenceEqual model
+                let right = FingerTree.ofList what
+                sut := FingerTree.concat !sut right
+                !sut |> FingerTree.sequenceEqual model
                 |> Prop.trivial (what.Length = 0)
 
             override __.ToString () = sprintf "concatRight %A" what
@@ -67,9 +67,9 @@ let fingerTreeSpec =
                 copy
 
             override __.Check(sut, model) =
-                let left = Finger.ofList what
-                sut := Finger.concat left !sut
-                !sut |> Finger.sequenceEqual model
+                let left = FingerTree.ofList what
+                sut := FingerTree.concat left !sut
+                !sut |> FingerTree.sequenceEqual model
                 |> Prop.trivial (what.Length = 0)
 
             override __.ToString () = sprintf "concatLeft %A" what
@@ -84,9 +84,9 @@ let fingerTreeSpec =
                 copy
 
             override __.Check(sut, model) =
-                let add = what |> Finger.collect (f >> Finger.ofSeq)
-                sut := Finger.concat !sut add
-                !sut |> Finger.sequenceEqual model
+                let add = what |> FingerTree.collect (f >> FingerTree.ofSeq)
+                sut := FingerTree.concat !sut add
+                !sut |> FingerTree.sequenceEqual model
                 |> Prop.trivial (Seq.isEmpty what)
 
             override __.ToString() = sprintf "collectAddEnd %A" what
@@ -99,8 +99,8 @@ let fingerTreeSpec =
                 ResizeArray(transformed)
 
             override __.Check(sut, model) =
-                sut := what |> Finger.collect (f >> Finger.ofSeq)
-                !sut |> Finger.sequenceEqual model
+                sut := what |> FingerTree.collect (f >> FingerTree.ofSeq)
+                !sut |> FingerTree.sequenceEqual model
                 |> Prop.trivial (Seq.isEmpty what)
 
             override __.ToString() = sprintf "collectReplace %A" what
@@ -108,7 +108,7 @@ let fingerTreeSpec =
 
     let create (initial) =
         { new Setup<SutType, ModelType>() with
-            override __.Actual () = ref (Finger.ofArray initial)
+            override __.Actual () = ref (FingerTree.ofArray initial)
 
             override __.Model () = initial |> ResizeArray
         }
