@@ -148,7 +148,8 @@ module Finger =
         | Empty -> Single z
         | Single y -> Deep(One y, Lazy.CreateFromValue Empty, One z)
         | Deep(prefix, Lazy deeper, Four(v, w, x, y)) ->
-            Deep(prefix, lazy append (Node3(v, w, x)) deeper, Two(y, z))
+            // Force evaluation here, because the dept has already been paid for.
+            Deep(prefix, Lazy.CreateFromValue(append (Node3(v, w, x)) deeper), Two(y, z))
         | Deep(prefix, deeper, suffix) ->
             Deep(prefix, deeper, suffix |> Digit.append z)
 
@@ -156,7 +157,8 @@ module Finger =
         | Empty -> Single a
         | Single b -> Deep(One a, Lazy.CreateFromValue Empty, One b)
         | Deep(Four(b, c, d, e), Lazy deeper, suffix) ->
-            Deep(Two(a, b), lazy prepend (Node3(c, d, e)) deeper, suffix)
+            // Force evaluation here, because the dept has already been paid for.
+            Deep(Two(a, b), Lazy.CreateFromValue(prepend (Node3(c, d, e)) deeper), suffix)
         | Deep(prefix, deeper, suffix) ->
             Deep(prefix |> Digit.prepend a, deeper, suffix)
 
