@@ -1,9 +1,16 @@
 ﻿namespace CmdQ
 
+open Monoid
 
-type Node<'a> =
-    | Node2 of 'a * 'a
-    | Node3 of 'a * 'a * 'a
+type Node<'m, 'a when 'm :> IMonoid<'m>> =
+    | Node2 of 'm * 'a * 'a
+    | Node3 of 'm * 'a * 'a * 'a
+
+    interface IMeasured<'m, Node<'m, 'a>> with
+        member me.Measure =
+            match me with
+            | Node2(v, _, _) -> v
+            | Node3(v, _, _, _) -> v
 
 module Node =
     let ofList = function
@@ -22,18 +29,42 @@ module Node =
         | [x; y; z] -> [Node3(x, y, z)]
         | x::y::rest -> Node2(x, y)::(toNodeList rest)
 
-type Digit<'a> =
+type Digit<'m, 'a
+    when 'm :> IMonoid<'m>
+        and 'a :> IMeasured<'m, 'a>
+    > =
     | One of 'a
     | Two of 'a * 'a
     | Three of 'a * 'a * 'a
     | Four of 'a * 'a * 'a * 'a
 
+    interface IMeasured<'m, 'a> with
+        member me.Measure =
+            match me with
+            | One a -> fmeasure a
+            | Two(a, b) -> mconcat [a; b]
+            | Three(a, b, c) -> mconcat [a; b; c]
+            | Four(a, b, c, d) -> mconcat [a; b; c; d]
+
 [<NoComparison>]
 [<NoEquality>]
-type FingerTree<'a> =
+type FingerTree<'m, 'a
+    when 'm :> IMonoid<'m>
+        and 'm : (new : unit -> 'm)
+        and 'a :> IMeasured<'m, 'a>
+    > =
     | Empty
     | Single of 'a
-    | Deep of Digit<'a> * Lazy<FingerTree<Node<'a>>> * Digit<'a>
+    | Deep of 'm * Digit<'m, 'a> * Lazy<FingerTree<'m, Node<'m, 'a>>> * Digit<'m, 'a>
+
+    member __.Monoid = Singleton.Instance
+
+    interface IMeasured<'m, 'a> with
+        member me.Measure =
+            match me with
+            | Empty -> me.Monoid
+            | Single x -> fmeasure x
+            | Deep(v, _, _, _) -> v
 
 module Digit =
     let ofList = function
@@ -67,7 +98,11 @@ module Digit =
         | Three(a, b, c) -> Deep(Two(a, b), Lazy.CreateFromValue Empty, One(c))
         | Four(a, b, c, d) -> Deep(Two(a, b), Lazy.CreateFromValue Empty, Two(c, d))
 
-type View<'a> = Nil | View of 'a * Lazy<FingerTree<'a>>
+type View<'m, 'a
+    when 'm :> IMonoid<'m>
+        and 'm : (new : unit -> 'm)
+        and 'a :> IMeasured<'m, 'a>
+    > = Nil | View of 'a * Lazy<FingerTree<'m, 'a>>
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module FingerTree =
