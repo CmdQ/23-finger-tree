@@ -13,21 +13,23 @@ type Node<'m, 'a when 'm :> IMonoid<'m>> =
             | Node3(v, _, _, _) -> v
 
 module Node =
-    let ofList = function
-        | [a; b] -> Node2(a, b)
-        | [a; b; c] -> Node3(a, b, c)
+    let ofList list =
+        match list with
+        | [a; b] -> Node2(mconcat list, a, b)
+        | [a; b; c] -> Node3(mconcat list, a, b, c)
         | _ -> failwith ErrorMessages.onlyList2or3Accepted
 
     let toList = function
-        | Node2(a, b) -> [a; b]
-        | Node3(a, b, c) -> [a; b; c]
+        | Node2(_, a, b) -> [a; b]
+        | Node3(_, a, b, c) -> [a; b; c]
 
-    let rec toNodeList = function
+    let rec toNodeList list =
+        match list with
         | []
         | [_] -> invalidOp "No enough elements."
-        | [x; y] -> [Node2(x, y)]
-        | [x; y; z] -> [Node3(x, y, z)]
-        | x::y::rest -> Node2(x, y)::(toNodeList rest)
+        | [x; y] -> [Node2(mconcat list, x, y)]
+        | [x; y; z] -> [Node3(mconcat list, x, y, z)]
+        | x::y::rest -> Node2(mconcat list, x, y)::(toNodeList rest)
 
 type Digit<'m, 'a
     when 'm :> IMonoid<'m>
@@ -64,7 +66,9 @@ type FingerTree<'m, 'a
     interface IMeasured<'m, 'a> with
         member me.Measure =
             match me with
-            | Empty -> me.Monoid
+            | Empty ->
+                //fmeasure Unchecked.defaultof<'a>
+                me.Monoid
             | Single x -> fmeasure x
             | Deep(v, _, _, _) -> v
 
@@ -92,9 +96,9 @@ module Digit =
 
     let promote = function
         | One a -> Single a
-        | Two(a, b) -> Deep(One a, Lazy.CreateFromValue Empty, One b)
-        | Three(a, b, c) -> Deep(Two(a, b), Lazy.CreateFromValue Empty, One(c))
-        | Four(a, b, c, d) -> Deep(Two(a, b), Lazy.CreateFromValue Empty, Two(c, d))
+        | Two(a, b) -> Deep(mconcat [a; b], One a, Lazy.CreateFromValue Empty, One b)
+        | Three(a, b, c) -> Deep(mconcat [a; b; c], Two(a, b), Lazy.CreateFromValue Empty, One(c))
+        | Four(a, b, c, d) -> Deep(mconcat [a; b; c; d], Two(a, b), Lazy.CreateFromValue Empty, Two(c, d))
 
 type View<'m, 'a
     when 'm :> IMonoid<'m>
@@ -116,38 +120,56 @@ module FingerTree =
         | Four(a, b, c, d) -> Some(Three(a, b, c), d)
         | _ -> None
 
-    let rec viewl<'a> : FingerTree<'a> -> View<'a> = function
+    let rec viewl<'m, 'a
+        when 'm :> IMonoid<'m>
+            and 'm : (new : unit -> 'm)
+            and 'a :> IMeasured<'m, 'a>
+        > : FingerTree<'m, 'a> -> View<'m, 'a> = function
         | Empty -> Nil
         | Single x -> View(x, Lazy.CreateFromValue Empty)
-        | Deep(One x, deeper, suffix) ->
+        | Deep(_, One x, deeper, suffix) as tree ->
             let rest = lazy (
                 match viewl deeper.Value with
                 | Nil ->
                     suffix |> Digit.promote
                 | View (node, lazyRest) ->
                     let prefix = node |> Node.toList |> Digit.ofList
-                    Deep(prefix, lazyRest, suffix)
+                    let v = (fmeasure prefix).Add(fmeasure lazyRest.Value).Add(fmeasure suffix)
+                    Deep(v, prefix, lazyRest, suffix)
             )
             View(x, rest)
-        | Deep(SplitFirst(x, shorter), deeper, suffix) ->
-            View(x, lazy Deep(shorter, deeper, suffix))
+        | Deep(_, SplitFirst(x, shorter), deeper, suffix) ->
+            let lazyRest = lazy (
+                let v = (fmeasure shorter).Add(fmeasure deeper.Value).Add(fmeasure suffix)
+                Deep(v, shorter, deeper, suffix)
+            )
+            View(x, lazyRest)
         | _ -> failwith ErrorMessages.patternMatchImpossible
 
-    let rec viewr<'a> : FingerTree<'a> -> View<'a> = function
+    let rec viewr<'m, 'a
+        when 'm :> IMonoid<'m>
+            and 'm : (new : unit -> 'm)
+            and 'a :> IMeasured<'m, 'a>
+        > : FingerTree<'m, 'a> -> View<'m, 'a> = function
         | Empty -> Nil
         | Single x -> View(x, Lazy.CreateFromValue Empty)
-        | Deep(prefix, deeper, One x) ->
+        | Deep(_, prefix, deeper, One x) ->
             let rest = lazy (
                 match viewr deeper.Value with
                 | Nil ->
                     prefix |> Digit.promote
                 | View (node, lazyRest) ->
                     let suffix = node |> Node.toList |> Digit.ofList
-                    Deep(prefix, lazyRest, suffix)
+                    let v = (fmeasure prefix).Add(fmeasure lazyRest.Value).Add(fmeasure suffix)
+                    Deep(v, prefix, lazyRest, suffix)
             )
             View(x, rest)
-        | Deep(prefix, deeper, SplitLast(shorter, x)) ->
-            View(x, lazy Deep(prefix, deeper, shorter))
+        | Deep(_, prefix, deeper, SplitLast(shorter, x)) ->
+            let lazyRest = lazy (
+                let v = (fmeasure prefix).Add(fmeasure deeper.Value).Add(fmeasure shorter)
+                Deep(v, prefix, deeper, shorter)
+            )
+            View(x, lazyRest)
         | _ -> failwith ErrorMessages.patternMatchImpossible
 
     let empty = Empty
@@ -172,64 +194,94 @@ module FingerTree =
         | View(h, _) -> h
         | _ -> invalidArg "tree" ErrorMessages.treeIsEmpty
 
-    let rec append<'a> (z:'a) : FingerTree<'a> -> FingerTree<'a> = function
+    let rec append<'m, 'a
+        when 'm :> IMonoid<'m>
+            and 'm : (new : unit -> 'm)
+            and 'a :> IMeasured<'m, 'a>
+        > (z:'a) : FingerTree<'m, 'a> -> FingerTree<'m, 'a> = function
         | Empty -> Single z
-        | Single y -> Deep(One y, Lazy.CreateFromValue Empty, One z)
-        | Deep(prefix, Lazy deeper, Four(v, w, x, y)) ->
+        | Single y ->
+            let annot = mconcat [y; z]
+            Deep(annot, One y, Lazy.CreateFromValue Empty, One z)
+        | Deep(annot, prefix, Lazy deeper, Four(v, w, x, y)) ->
             // Force evaluation here, because the dept has already been paid for.
-            Deep(prefix, Lazy.CreateFromValue(append (Node3(v, w, x)) deeper), Two(y, z))
-        | Deep(prefix, deeper, suffix) ->
-            Deep(prefix, deeper, suffix |> Digit.append z)
+            Deep(annot.Add (fmeasure z),
+                prefix,
+                Lazy.CreateFromValue(append (Node.ofList [v; w; x]) deeper),
+                Two(y, z))
+        | Deep(v, prefix, deeper, suffix) ->
+            Deep(v.Add (fmeasure z), prefix, deeper, suffix |> Digit.append z)
 
-    let rec prepend<'a> (a:'a) : FingerTree<'a> -> FingerTree<'a> = function
+    let rec prepend<'m, 'a
+        when 'm :> IMonoid<'m>
+            and 'm : (new : unit -> 'm)
+            and 'a :> IMeasured<'m, 'a>
+        > (a:'a) : FingerTree<'m, 'a> -> FingerTree<'m, 'a> = function
         | Empty -> Single a
-        | Single b -> Deep(One a, Lazy.CreateFromValue Empty, One b)
-        | Deep(Four(b, c, d, e), Lazy deeper, suffix) ->
+        | Single b ->
+            let annot = mconcat [a; b]
+            Deep(annot, One a, Lazy.CreateFromValue Empty, One b)
+        | Deep(annot, Four(b, c, d, e), Lazy deeper, suffix) ->
             // Force evaluation here, because the dept has already been paid for.
-            Deep(Two(a, b), Lazy.CreateFromValue(prepend (Node3(c, d, e)) deeper), suffix)
-        | Deep(prefix, deeper, suffix) ->
-            Deep(prefix |> Digit.prepend a, deeper, suffix)
+            Deep((fmeasure a).Add annot,
+                Two(a, b),
+                Lazy.CreateFromValue(prepend (Node.ofList [c; d; e]) deeper),
+                suffix)
+        | Deep(annot, prefix, deeper, suffix) ->
+            Deep((fmeasure a).Add annot, prefix |> Digit.prepend a, deeper, suffix)
 
-    let ofList list = List.fold (flip append<'a>) empty list
+    let ofList list = List.fold (flip append<'m, 'a>) empty list
 
     let ofArray arr = Array.foldBack prepend arr empty
 
-    let ofSeq seq = Seq.fold (flip append<'a>) empty seq
+    let ofSeq seq = Seq.fold (flip append<'m, 'a>) empty seq
 
-    let rec toSeq<'a> (tree:FingerTree<'a>) : seq<'a> = seq {
+    let rec toSeq<'m, 'a
+        when 'm :> IMonoid<'m>
+            and 'm : (new : unit -> 'm)
+            and 'a :> IMeasured<'m, 'a>
+        > (tree:FingerTree<'m, 'a>) : seq<'a> = seq {
         match tree with
         | Single single ->
             yield single
-        | Deep(prefix, Lazy deeper, suffix) ->
+        | Deep(_, prefix, Lazy deeper, suffix) ->
             yield! prefix |> Digit.toList
             yield! deeper |> toSeq |> Seq.collect Node.toList
             yield! suffix |> Digit.toList
         | Empty -> ()
     }
 
-    let toArray<'a> = toSeq<'a> >> Seq.toArray
+    let toArray<'m, 'a
+        when 'm :> IMonoid<'m>
+            and 'm : (new : unit -> 'm)
+            and 'a :> IMeasured<'m, 'a>
+        > = toSeq<'m, 'a> >> Seq.toArray
 
     let rec toList tree =
         match viewl tree with
         | Nil -> []
         | View(head, Lazy tail) -> head::(toList tail)
 
-    // http://andrew.gibiansky.com/blog/haskell/finger-trees/#Concatenation
-    let rec concatWithMiddle<'a> : FingerTree<'a> * 'a list * FingerTree<'a> -> FingerTree<'a> = function
+    let rec
+        concatWithMiddle<'m, 'a
+            when 'm :> IMonoid<'m>
+                and 'm : (new : unit -> 'm)
+                and 'a :> IMeasured<'m, 'a>
+        > : FingerTree<'m, 'a> * 'a list * FingerTree<'m, 'a> -> FingerTree<'m, 'a> = function
         | Empty, [], only
         | only, [], Empty -> only
         | Empty, left::rest, right
         | Single left, rest, right -> concatWithMiddle(Empty, rest, right) |> prepend left
         | left, List.Snoc(rest, right), Empty
         | left, rest, Single right -> concatWithMiddle(left, rest, Empty) |> append right
-        | Deep(leftPrefix, leftDeeper, leftSuffix), middle, Deep(rightPrefix, rightDeeper, rightSuffix) ->
+        | Deep(leftAnnot, leftPrefix, leftDeeper, leftSuffix), middle, Deep(rightAnnot, rightPrefix, rightDeeper, rightSuffix) ->
             let deeper = lazy (
                 let leftList = leftSuffix |> Digit.toList
                 let rightList = rightPrefix |> Digit.toList
                 let middle' = leftList @ middle @ rightList |> Node.toNodeList
                 concatWithMiddle(leftDeeper.Value, middle', rightDeeper.Value)
             )
-            Deep(leftPrefix, deeper, rightSuffix)
+            Deep(leftAnnot.Add rightAnnot, leftPrefix, deeper, rightSuffix)
         | _ -> failwith ErrorMessages.patternMatchImpossible
 
     let concat left right = concatWithMiddle(left, [], right)
