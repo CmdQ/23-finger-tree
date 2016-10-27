@@ -230,11 +230,13 @@ module FingerTree =
         | Deep(annot, prefix, deeper, suffix) ->
             Deep((fmeasure a).Add annot, prefix |> Digit.prepend a, deeper, suffix)
 
-    let ofList list = List.fold (flip append<'m, 'a>) empty list
+    let inline ofSomething modul = modul (flip append<'m, 'a>) empty
+
+    let ofSeq sth = ofSomething Seq.fold sth
+
+    let ofList sth = ofSomething List.fold sth
 
     let ofArray arr = Array.foldBack prepend arr empty
-
-    let ofSeq seq = Seq.fold (flip append<'m, 'a>) empty seq
 
     let rec toSeq<'m, 'a
         when 'm :> IMonoid<'m>
