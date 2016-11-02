@@ -242,7 +242,7 @@ module FingerTree =
     let (|PopRight|_|) tree =
         match viewr tree with
         | View(last, Lazy butLast) ->
-            Some(last, butLast)
+            Some(butLast, last)
         | _ -> None
 
     /// Append an element to the right of a tree.
