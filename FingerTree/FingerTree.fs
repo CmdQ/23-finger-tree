@@ -75,6 +75,8 @@ type FingerTree<'m, 'a
             | Deep(v, _, _, _) -> v
 
 module Digit =
+    let max = 4
+
     let ofList = function
         | [a] -> One(a)
         | [a; b] -> Two(a, b)
@@ -327,7 +329,7 @@ module FingerTree =
             | View(head, Lazy tail) ->
                 deep (Node.toList head) tail suffix
         | _ ->
-            if prefix.Length > 4 || suffix.Length > 4 then
+            if prefix.Length > Digit.max || suffix.Length > Digit.max then
                 invalidOp Messages.digitsCannotBeLongerThanFour
             else
                 let v = (mconcat prefix).Add(fmeasure deeper).Add(mconcat suffix)
