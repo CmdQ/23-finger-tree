@@ -1,11 +1,14 @@
 ﻿[<AutoOpen>]
 module Prelude
 
+/// Perform implicit conversion to a target type.
 let inline implicit arg = (^b : (static member op_Implicit : ^a -> ^b) arg)
 
+/// Flip the order of two arguments for a curried function.
 let inline flip f x y = f y x
 
 module List =
+    /// Return all but the last element of a list. This is O(n).
     let butLast list =
         let rec butLast acc = function
             | [] -> invalidArg "list" "The input list was empty."
@@ -13,6 +16,7 @@ module List =
             | x::xs -> butLast (x::acc) xs
         butLast [] list
 
+    /// Split a list into a spine and the last element.
     let (|Snoc|_|) list =
         match list with
         | [] -> None
