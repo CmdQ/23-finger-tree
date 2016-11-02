@@ -45,7 +45,7 @@
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Prelude.fs" />
-    <Compile Include="ErrorMessages.fs" />
+    <Compile Include="Error.fs" />
     <Compile Include="Monoid.fs" />
     <Compile Include="FingerTree.fs" />
     <None Include="Script.fsx" />

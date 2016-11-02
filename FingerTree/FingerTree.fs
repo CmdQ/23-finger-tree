@@ -1,5 +1,7 @@
 ﻿namespace CmdQ
 
+open System
+open Error
 open Monoid
 
 type Node<'m, 'a when 'm :> IMonoid<'m>> =
@@ -17,7 +19,7 @@ module Node =
         match list with
         | [a; b] -> Node2(mconcat list, a, b)
         | [a; b; c] -> Node3(mconcat list, a, b, c)
-        | _ -> failwith ErrorMessages.onlyList2or3Accepted
+        | _ -> failwith Messages.onlyList2or3Accepted
 
     let toList = function
         | Node2(_, a, b) -> [a; b]
@@ -78,7 +80,7 @@ module Digit =
         | [a; b] -> Two(a, b)
         | [a; b; c] -> Three(a, b, c)
         | [a; b; c; d] -> Four(a, b, c, d)
-        | _ -> failwith ErrorMessages.onlyList1to4Accepted
+        | _ -> invalidOp Messages.onlyList1to4Accepted
 
     let toList (digit:Digit<_, _>) = digit.ToList()
 
@@ -86,13 +88,13 @@ module Digit =
         | One a -> Two(a, x)
         | Two(a, b) -> Three(a, b, x)
         | Three(a, b, c) -> Four(a, b, c, x)
-        | _ -> failwith ErrorMessages.digitAlreadyHas4Entries
+        | _ -> invalidOp Messages.digitAlreadyHas4Entries
 
     let prepend x = function
         | One a -> Two(x, a)
         | Two(a, b) -> Three(x, a, b)
         | Three(a, b, c) -> Four(x, a, b, c)
-        | _ -> failwith ErrorMessages.digitAlreadyHas4Entries
+        | _ -> invalidOp Messages.digitAlreadyHas4Entries
 
     let promote = function
         | One a -> Single a
@@ -100,14 +102,6 @@ module Digit =
         | Three(a, b, c) -> Deep(mconcat [a; b; c], Two(a, b), Lazy.CreateFromValue Empty, One(c))
         | Four(a, b, c, d) -> Deep(mconcat [a; b; c; d], Two(a, b), Lazy.CreateFromValue Empty, Two(c, d))
 
-type View<'m, 'a
-    when 'm :> IMonoid<'m>
-        and 'm : (new : unit -> 'm)
-        and 'a :> IMeasured<'m, 'a>
-    > = Nil | View of 'a * Lazy<FingerTree<'m, 'a>>
-
-[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
-module FingerTree =
     let (|SplitFirst|_|) = function
         | Two(a, b) -> Some(a, One b)
         | Three(a, b, c) -> Some(a, Two(b, c))
@@ -120,6 +114,20 @@ module FingerTree =
         | Four(a, b, c, d) -> Some(Three(a, b, c), d)
         | _ -> None
 
+type View<'m, 'a
+    when 'm :> IMonoid<'m>
+        and 'm : (new : unit -> 'm)
+        and 'a :> IMeasured<'m, 'a>
+    > = Nil | View of 'a * Lazy<FingerTree<'m, 'a>>
+
+type Split<'m, 'a
+    when 'm :> IMonoid<'m>
+        and 'm : (new : unit -> 'm)
+        and 'a :> IMeasured<'m, 'a>
+    > = Split of FingerTree<'m, 'a> * 'a * FingerTree<'m, 'a>
+
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+module FingerTree =
     let rec viewl<'m, 'a
         when 'm :> IMonoid<'m>
             and 'm : (new : unit -> 'm)
@@ -138,13 +146,12 @@ module FingerTree =
                     Deep(v, prefix, lazyRest, suffix)
             )
             View(x, rest)
-        | Deep(_, SplitFirst(x, shorter), deeper, suffix) ->
+        | Deep(_, Digit.SplitFirst(x, shorter), deeper, suffix) ->
             let lazyRest = lazy (
                 let v = (fmeasure shorter).Add(fmeasure deeper.Value).Add(fmeasure suffix)
                 Deep(v, shorter, deeper, suffix)
             )
             View(x, lazyRest)
-        | _ -> failwith ErrorMessages.patternMatchImpossible
 
     let rec viewr<'m, 'a
         when 'm :> IMonoid<'m>
@@ -164,13 +171,12 @@ module FingerTree =
                     Deep(v, prefix, lazyRest, suffix)
             )
             View(x, rest)
-        | Deep(_, prefix, deeper, SplitLast(shorter, x)) ->
+        | Deep(_, prefix, deeper, Digit.SplitLast(shorter, x)) ->
             let lazyRest = lazy (
                 let v = (fmeasure prefix).Add(fmeasure deeper.Value).Add(fmeasure shorter)
                 Deep(v, prefix, deeper, shorter)
             )
             View(x, lazyRest)
-        | _ -> failwith ErrorMessages.patternMatchImpossible
 
     let empty = Empty
 
@@ -182,17 +188,17 @@ module FingerTree =
     let head tree =
         match viewl tree with
         | View(h, _) -> h
-        | _ -> invalidArg "tree" ErrorMessages.treeIsEmpty
+        | _ -> invalidArg "tree" Messages.treeIsEmpty
 
     let tail tree =
         match viewl tree with
         | View(_, Lazy t) -> t
-        | _ -> invalidArg "tree" ErrorMessages.treeIsEmpty
+        | _ -> invalidArg "tree" Messages.treeIsEmpty
 
     let last tree =
         match viewr tree with
         | View(h, _) -> h
-        | _ -> invalidArg "tree" ErrorMessages.treeIsEmpty
+        | _ -> invalidArg "tree" Messages.treeIsEmpty
 
     let rec append<'m, 'a
         when 'm :> IMonoid<'m>
@@ -284,8 +290,77 @@ module FingerTree =
                 concatWithMiddle(leftDeeper.Value, middle', rightDeeper.Value)
             )
             Deep(leftAnnot.Add rightAnnot, leftPrefix, deeper, rightSuffix)
-        | _ -> failwith ErrorMessages.patternMatchImpossible
 
     let concat left right = concatWithMiddle(left, [], right)
 
     let collect mapping = Seq.map mapping >> Seq.fold concat empty
+
+    let rec splitList pred (start:IMonoid<_>) = function
+        | [] -> invalidIndex Messages.splitPointNotFound
+        | (x::xs) as list ->
+            let start = start.Add(fmeasure x)
+            if pred start then
+                [], list
+            else
+                let before, after = splitList pred start xs
+                x::before, after
+
+    let chunkToTree list =
+        if List.isEmpty list then Empty else
+        list |> Digit.ofList |> Digit.promote
+
+    let rec deep prefix deeper suffix =
+        match prefix, suffix with
+        | [], [] ->
+            match viewl deeper with
+            | Nil -> Empty
+            | View(head, Lazy tail) ->
+                deep (Node.toList head) tail []
+        | _, [] ->
+            match viewr deeper with
+            | Nil -> prefix |> chunkToTree
+            | View (last, Lazy butLast) ->
+                deep prefix butLast (Node.toList last)
+        | [], _ ->
+            match viewl deeper with
+            | Nil -> suffix |> chunkToTree
+            | View(head, Lazy tail) ->
+                deep (Node.toList head) tail suffix
+        | _ ->
+            if prefix.Length > 4 || suffix.Length > 4 then
+                invalidOp Messages.digitsCannotBeLongerThanFour
+            else
+                let v = (mconcat prefix).Add(fmeasure deeper).Add(mconcat suffix)
+                Deep(v, Digit.ofList prefix, Lazy.CreateFromValue deeper, Digit.ofList suffix)
+
+    let rec split<'m, 'a
+        when 'm :> IMonoid<'m>
+            and 'm : (new : unit -> 'm)
+            and 'a :> IMeasured<'m, 'a>
+        > (pred:'m -> bool) (start:'m) : FingerTree<'m, 'a> -> Split<'m, 'a> = function
+        | Empty -> invalidArg "" Messages.treeIsEmpty
+        | Single x ->
+            if pred (start.Add(fmeasure x)) then
+                Split(Empty, x, Empty)
+            else
+                invalidIndex Messages.splitPointNotFound
+        | Deep(total, pref, deeper, suff) ->
+            if start.Add total |> pred |> not then
+                invalidIndex Messages.splitPointNotFound
+            else
+                let prefix = Digit.toList pref
+                let suffix = Digit.toList suff
+
+                let startPref = start.Add(fmeasure pref)
+                let startPrefDeeper = startPref.Add(fmeasure deeper.Value)
+
+                if pred startPref then
+                    let before, x::after = splitList pred start prefix
+                    Split(chunkToTree before, x, deep after deeper.Value suffix)
+                elif startPrefDeeper |> pred then
+                    let (Split(before, node, after)) = split pred startPref deeper.Value
+                    let beforeNode, x::afterNode = splitList pred <| startPref.Add(fmeasure before) <| Node.toList node
+                    Split(deep prefix before beforeNode, x, deep afterNode after suffix)
+                else
+                    let before, x::after = splitList pred startPrefDeeper suffix
+                    Split(deep prefix deeper.Value before, x, chunkToTree after)
