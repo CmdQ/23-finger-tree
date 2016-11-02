@@ -12,4 +12,4 @@ module Messages =
     let digitsCannotBeLongerThanFour = "Digits cannot be longer than 4."
     let patternMatchImpossible = "Impossible!"
 
-let inline invalidIndex msg = IndexOutOfRangeException msg |> raise
+let invalidIndex msg = IndexOutOfRangeException msg |> raise
