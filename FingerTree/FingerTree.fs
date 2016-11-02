@@ -339,28 +339,24 @@ module FingerTree =
             and 'a :> IMeasured<'m, 'a>
         > (pred:'m -> bool) (start:'m) : FingerTree<'m, 'a> -> Split<'m, 'a> = function
         | Empty -> invalidArg "" Messages.treeIsEmpty
-        | Single x ->
-            if start.Add(fmeasure x) |> pred then
-                Split(Empty, x, Empty)
-            else
-                invalidIndex Messages.splitPointNotFound
-        | Deep(total, pref, deeper, suff) ->
-            if start.Add total |> pred then
-                let prefix = Digit.toList pref
-                let suffix = Digit.toList suff
+        | Single x when start.Add(fmeasure x) |> pred ->
+            Split(Empty, x, Empty)
+        | Deep(total, pref, deeper, suff) when start.Add total |> pred ->
+            let prefix = Digit.toList pref
+            let suffix = Digit.toList suff
 
-                let startPref = start.Add(fmeasure pref)
-                let startPrefDeeper = startPref.Add(fmeasure deeper.Value)
+            let startPref = start.Add(fmeasure pref)
+            let startPrefDeeper = startPref.Add(fmeasure deeper.Value)
 
-                if pred startPref then
-                    let before, x::after = splitList pred start prefix
-                    Split(chunkToTree before, x, deep after deeper.Value suffix)
-                elif startPrefDeeper |> pred then
-                    let (Split(before, node, after)) = split pred startPref deeper.Value
-                    let beforeNode, x::afterNode = splitList pred <| startPref.Add(fmeasure before) <| Node.toList node
-                    Split(deep prefix before beforeNode, x, deep afterNode after suffix)
-                else
-                    let before, x::after = splitList pred startPrefDeeper suffix
-                    Split(deep prefix deeper.Value before, x, chunkToTree after)
+            if pred startPref then
+                let before, x::after = splitList pred start prefix
+                Split(chunkToTree before, x, deep after deeper.Value suffix)
+            elif startPrefDeeper |> pred then
+                let (Split(before, node, after)) = split pred startPref deeper.Value
+                let beforeNode, x::afterNode = splitList pred <| startPref.Add(fmeasure before) <| Node.toList node
+                Split(deep prefix before beforeNode, x, deep afterNode after suffix)
             else
-                invalidIndex Messages.splitPointNotFound
+                let before, x::after = splitList pred startPrefDeeper suffix
+                Split(deep prefix deeper.Value before, x, chunkToTree after)
+        | _ ->
+            invalidIndex Messages.splitPointNotFound
