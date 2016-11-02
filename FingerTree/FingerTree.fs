@@ -356,6 +356,7 @@ module FingerTree =
                 let beforeNode, x::afterNode = splitList pred <| startPref.Add(fmeasure before) <| Node.toList node
                 Split(deep prefix before beforeNode, x, deep afterNode after suffix)
             else
+                assert(start.Add(mconcat suffix) |> pred)
                 let before, x::after = splitList pred startPrefDeeper suffix
                 Split(deep prefix deeper.Value before, x, chunkToTree after)
         | _ ->

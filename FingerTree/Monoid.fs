@@ -7,16 +7,10 @@ type Singleton<'a when 'a : (new : unit -> 'a)> private() =
 type IMonoid<'m> =
     abstract member Zero:'m
     abstract member Add:'m -> 'm
-    abstract member Add2:'m -> 'm -> 'm
 
 type IMeasured<'m, 'a when 'm :> IMonoid<'m>> =
     abstract member Measure:'m
 
 let fmeasure m = (m :> IMeasured<_, _>).Measure
 
-let mconcat = function
-    | [] -> invalidArg "" "Need at least one element."
-    | [x] -> fmeasure x
-    | x::xs ->
-        let monoid = fmeasure x
-        xs |> List.map fmeasure |> List.fold monoid.Add2 monoid
+let mconcat monoids = monoids |> (List.map fmeasure >> List.reduce (fun a b -> a.Add b))
