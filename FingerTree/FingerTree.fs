@@ -340,14 +340,12 @@ module FingerTree =
         > (pred:'m -> bool) (start:'m) : FingerTree<'m, 'a> -> Split<'m, 'a> = function
         | Empty -> invalidArg "" Messages.treeIsEmpty
         | Single x ->
-            if pred (start.Add(fmeasure x)) then
+            if start.Add(fmeasure x) |> pred then
                 Split(Empty, x, Empty)
             else
                 invalidIndex Messages.splitPointNotFound
         | Deep(total, pref, deeper, suff) ->
-            if start.Add total |> pred |> not then
-                invalidIndex Messages.splitPointNotFound
-            else
+            if start.Add total |> pred then
                 let prefix = Digit.toList pref
                 let suffix = Digit.toList suff
 
@@ -364,3 +362,5 @@ module FingerTree =
                 else
                     let before, x::after = splitList pred startPrefDeeper suffix
                     Split(deep prefix deeper.Value before, x, chunkToTree after)
+            else
+                invalidIndex Messages.splitPointNotFound
