@@ -202,6 +202,23 @@ module FingerTree =
         | View(h, _) -> h
         | _ -> invalidArg "tree" Messages.treeIsEmpty
 
+    let butLast tree =
+        match viewr tree with
+        | View(_, Lazy spine) -> spine
+        | _ -> invalidArg "tree" Messages.treeIsEmpty
+
+    let (|PopLeft|_|) tree =
+        match viewl tree with
+        | View(head, Lazy tail) ->
+            Some(head, tail)
+        | _ -> None
+
+    let (|PopRight|_|) tree =
+        match viewr tree with
+        | View(last, Lazy butLast) ->
+            Some(last, butLast)
+        | _ -> None
+
     let rec append<'m, 'a
         when 'm :> IMonoid<'m>
             and 'm : (new : unit -> 'm)
