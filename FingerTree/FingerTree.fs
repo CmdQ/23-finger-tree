@@ -341,12 +341,12 @@ module FingerTree =
         | Empty -> invalidArg "" Messages.treeIsEmpty
         | Single x when start.Add(fmeasure x) |> pred ->
             Split(Empty, x, Empty)
-        | Deep(total, pref, deeper, suff) when start.Add total |> pred ->
-            let prefix = Digit.toList pref
-            let suffix = Digit.toList suff
-
-            let startPref = start.Add(fmeasure pref)
+        | Deep(total, prefix, deeper, suffix) when start.Add total |> pred ->
+            let startPref = start.Add(fmeasure prefix)
             let startPrefDeeper = startPref.Add(fmeasure deeper.Value)
+
+            let prefix = Digit.toList prefix
+            let suffix = Digit.toList suffix
 
             if pred startPref then
                 let before, x::after = splitList pred start prefix
