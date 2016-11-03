@@ -1,14 +1,12 @@
-﻿module CmdQ.FingerTree.Tests.FingerTreeTest
+﻿module CmdQ.FingerTree.Tests.ConcatDequeTest
 
 open CmdQ.FingerTree
 open MyArbitraries
 open Fuchu
 open FsCheck
 
-/// Testing extensions for finger tree module.
-module Finger =
-    /// Regular finger tree doesn't provide a length, so we work around.
-    let length tree = tree |> ConcatDeque.toSeq |> Seq.length
+module ConcatDeque =
+    let length<'a> = ConcatDeque.toSeq<'a> >> Seq.length
 
 [<Tests>]
 let properties =
@@ -16,18 +14,18 @@ let properties =
         testProperty "Empty finger tree, one insertion" <|
             fun elm ->
                 let ft = ConcatDeque.empty
-                Finger.length ft = 0
-             && (ft |> ConcatDeque.append elm |> Finger.length) = 1
-             && (ft |> ConcatDeque.prepend elm |> Finger.length) = 1
+                ConcatDeque.length ft = 0
+             && (ft |> ConcatDeque.append elm |> ConcatDeque.length) = 1
+             && (ft |> ConcatDeque.prepend elm |> ConcatDeque.length) = 1
 
         testProperty "Appending increases size" <|
             fun coll elm1 elm2 ->
                 let ft = coll |> ConcatDeque.ofArray
-                let before = Finger.length ft
+                let before = ConcatDeque.length ft
                 let bigger = ft |> ConcatDeque.append elm1
-                let after = Finger.length bigger
+                let after = ConcatDeque.length bigger
                 let evenBigger = bigger |> ConcatDeque.prepend elm2
-                after = before + 1 && Finger.length evenBigger = after + 1
+                after = before + 1 && ConcatDeque.length evenBigger = after + 1
 
         testProperty "Tree of array must go back to array" <|
             fun array ->
@@ -41,7 +39,7 @@ let properties =
 
         testProperty "Prepended items must show up at the front" <|
             fun (list:PosInt list) (NegInt elm) ->
-                (List.length list > 0) ==> lazy (
+                (not (List.isEmpty list)) ==> lazy (
                         // Remove enclosing type.
                         let list = List.map int list
 
@@ -52,15 +50,15 @@ let properties =
                         list |> List.forall (flip (>=) 0)
                         // ... and that our candidate is negative.
                      && elm < 0
-                     && List.length list > 0
-                     && Finger.length ft > 0
+                     && not (List.isEmpty list)
+                     && ConcatDeque.length ft > 0
                      && ft |> ConcatDeque.head <> elm
                      && added |> ConcatDeque.head = elm
                     )
 
         testProperty "Appended items must show up at the end" <|
             fun (list:PosInt list) (NegInt elm) ->
-                (List.length list > 0) ==> lazy (
+                (not (List.isEmpty list)) ==> lazy (
                         // Remove enclosing type.
                         let list = List.map int list
 
@@ -71,8 +69,8 @@ let properties =
                         list |> List.forall (flip (>=) 0)
                         // ... and that our candidate is negative.
                      && elm < 0
-                     && List.length list > 0
-                     && Finger.length ft > 0
+                     && not (List.isEmpty list)
+                     && ConcatDeque.length ft > 0
                      && ft |> ConcatDeque.last <> elm
                      && added |> ConcatDeque.last = elm
                     )
@@ -84,7 +82,7 @@ let properties =
                 let tree1:FingerTree<string> = list1 |> ConcatDeque.ofList
                 let tree2 = list2 |> ConcatDeque.ofList
                 let concat = ConcatDeque.concat tree1 tree2
-                Finger.length concat = c1 + c2
+                ConcatDeque.length concat = c1 + c2
 
         testProperty "Concatenation is the same as n appends" <|
             fun left right ->

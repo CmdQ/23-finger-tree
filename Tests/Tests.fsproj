@@ -60,7 +60,7 @@
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="MyArbitraries.fs" />
-    <Compile Include="FingerTreeTest.fs" />
+    <Compile Include="ConcatDequeTest.fs" />
     <Compile Include="FingerTreeModelTest.fs" />
     <Compile Include="Benchmark.fs" />
     <Compile Include="Program.fs" />

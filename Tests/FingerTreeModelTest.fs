@@ -1,4 +1,4 @@
-﻿module CmdQ.Tests.FingerTreeModelTest
+﻿module CmdQ.Tests.ConcatDequeModelTest
 
 open CmdQ.FingerTree
 open Fuchu
@@ -14,7 +14,7 @@ module ConcatDeque =
         Seq.zip (ConcatDeque.toSeq tree) seq
         |> Seq.forall (fun ab -> ab ||> (=))
 
-let fingerTreeSpec =
+let concatDequeSpec =
     let check sut model op changer delta =
         sut := !sut |> changer delta
         !sut |> ConcatDeque.sequenceEqual model |@ sprintf "%s: %A" op delta
@@ -144,6 +144,6 @@ let fingerTreeSpec =
 
 [<Tests>]
 let modelTests =
-    [fingerTreeSpec]
+    [concatDequeSpec]
     |> List.map (StateMachine.toProperty >> testProperty "Finger tree")
     |> testList "Model tests"
