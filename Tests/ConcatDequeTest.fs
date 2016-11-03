@@ -10,7 +10,7 @@ module ConcatDeque =
 
 [<Tests>]
 let properties =
-    testList "Basic finger tree" [
+    testList "ConcatDeque" [
         testProperty "Empty finger tree, one insertion" <|
             fun elm ->
                 let ft = ConcatDeque.empty
@@ -36,6 +36,11 @@ let properties =
             fun list ->
                 let ft = list |> ConcatDeque.ofList
                 ft |> ConcatDeque.toList = list
+
+        testProperty "Tree of list must go back to seq" <|
+            fun list ->
+                let ft = list |> List.toSeq |> ConcatDeque.ofSeq
+                ft |> ConcatDeque.toSeq |> Seq.toList = list
 
         testProperty "Prepended items must show up at the front" <|
             fun (list:PosInt list) (NegInt elm) ->
@@ -96,5 +101,43 @@ let properties =
                 let tree:FingerTree<decimal> = right |> ConcatDeque.ofList
                 let concat = ConcatDeque.concat (left |> ConcatDeque.ofList) tree
                 let alterative = tree |> List.foldBack ConcatDeque.prepend left
-                ConcatDeque.toList concat = ConcatDeque.toList alterative
+                ConcatDeque.toArray concat = ConcatDeque.toArray alterative
+
+        testProperty "PopLeft reduces size of tree by one iff it has elements" <|
+            fun list ->
+                let tree = list |> ConcatDeque.ofArray
+                match tree with
+                | ConcatDeque.PopLeft(_, smaller) ->
+                    ConcatDeque.length tree = ConcatDeque.length smaller + 1
+                | _ ->
+                    ConcatDeque.length tree = 0
+
+        testProperty "PopRight reduces size of tree by one iff it has elements" <|
+            fun list ->
+                let tree = list |> ConcatDeque.ofList
+                match tree with
+                | ConcatDeque.PopRight(smaller, _) ->
+                    ConcatDeque.length tree = ConcatDeque.length smaller + 1
+                | _ ->
+                    ConcatDeque.length tree = 0
+
+        testProperty "Head of tree is same as first element in array" <|
+            fun elms ->
+                let tree:FingerTree<uint64> = elms |> ConcatDeque.ofArray
+                elms.Length = 0 || ConcatDeque.head tree = elms.[0]
+
+        testProperty "Last element of tree is same as last in array" <|
+            fun elms ->
+                let tree:FingerTree<int64> = elms |> ConcatDeque.ofArray
+                elms.Length = 0 || ConcatDeque.last tree = elms.[elms.Length - 1]
+
+        testProperty "Tail of list is same as tail of tree from list" <|
+            fun elms ->
+                let tree:FingerTree<int16> = elms |> ConcatDeque.ofList
+                List.isEmpty elms || tree |> ConcatDeque.tail |> ConcatDeque.toList = (elms |> List.tail)
+
+        testProperty "Spine of array is same as spine of tree from array" <|
+            fun elms ->
+                let tree:FingerTree<uint16> = elms |> ConcatDeque.ofArray
+                elms.Length <= 1 || tree |> ConcatDeque.butLast |> ConcatDeque.toArray = elms.[..elms.Length - 2]
     ]

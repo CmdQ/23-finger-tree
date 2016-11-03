@@ -77,10 +77,6 @@ module Digit =
         | Three(a, b, c) -> Deep(Two(a, b), Lazy.CreateFromValue Empty, One(c))
         | Four(a, b, c, d) -> Deep(Two(a, b), Lazy.CreateFromValue Empty, Two(c, d))
 
-/// A View is either empty or points to an element in the finger tree and its position.
-type View<'a> = Nil | View of 'a * Lazy<FingerTree<'a>>
-
-module ConcatDeque =
     /// Active pattern to get the left-most element and the rest to the right.
     let (|SplitFirst|_|) = function
         | Two(a, b) -> Some(a, One b)
@@ -95,6 +91,10 @@ module ConcatDeque =
         | Four(a, b, c, d) -> Some(Three(a, b, c), d)
         | _ -> None
 
+/// A View is either empty or points to an element in the finger tree and its position.
+type View<'a> = Nil | View of 'a * Lazy<FingerTree<'a>>
+
+module ConcatDeque =
     /// Return both the left-most element and the remaining tree (lazily).
     let rec viewl<'a> : FingerTree<'a> -> View<'a> = function
         | Empty -> Nil
@@ -109,7 +109,7 @@ module ConcatDeque =
                     Deep(prefix, lazyRest, suffix)
             )
             View(x, rest)
-        | Deep(SplitFirst(x, shorter), deeper, suffix) ->
+        | Deep(Digit.SplitFirst(x, shorter), deeper, suffix) ->
             View(x, lazy Deep(shorter, deeper, suffix))
         | _ -> failwith Messages.patternMatchImpossible
 
@@ -127,7 +127,7 @@ module ConcatDeque =
                     Deep(prefix, lazyRest, suffix)
             )
             View(x, rest)
-        | Deep(prefix, deeper, SplitLast(shorter, x)) ->
+        | Deep(prefix, deeper, Digit.SplitLast(shorter, x)) ->
             View(x, lazy Deep(prefix, deeper, shorter))
         | _ -> failwith Messages.patternMatchImpossible
 
@@ -157,7 +157,6 @@ module ConcatDeque =
         match viewr tree with
         | View(h, _) -> h
         | _ -> invalidArg "tree" Messages.treeIsEmpty
-
 
     /// Return the spine of the tree, i.e. all but the last element.
     let butLast tree =
