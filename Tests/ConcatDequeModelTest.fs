@@ -8,6 +8,7 @@ open FsCheck.Experimental
 type TestType = uint16
 type ModelType = ResizeArray<TestType>
 type SutType = CmdQ.FingerTree.FingerTree<TestType> ref
+type OpType = Operation<SutType, ModelType>
 
 module ConcatDeque =
     let sequenceEqual seq tree =
@@ -20,7 +21,7 @@ let concatDequeSpec =
         !sut |> ConcatDeque.sequenceEqual model |@ sprintf "%s: %A" op delta
 
     let prepend what =
-        { new Operation<SutType, ModelType>() with
+        { new OpType() with
             override __.Run model =
                 let copy = model |> ResizeArray
                 copy.Insert(0, what)
@@ -32,7 +33,7 @@ let concatDequeSpec =
         }
 
     let append what =
-        { new Operation<SutType, ModelType>() with
+        { new OpType() with
             override __.Run model =
                 let copy = model |> ResizeArray
                 copy.Add what
@@ -44,7 +45,7 @@ let concatDequeSpec =
         }
 
     let concatRight what =
-        { new Operation<SutType, ModelType>() with
+        { new OpType() with
             override __.Run model =
                 let copy = model |> ResizeArray
                 copy.AddRange what
@@ -60,7 +61,7 @@ let concatDequeSpec =
         }
 
     let concatLeft what =
-        { new Operation<SutType, ModelType>() with
+        { new OpType() with
             override __.Run model =
                 let copy = model |> ResizeArray
                 copy.InsertRange(0, what)
@@ -76,7 +77,7 @@ let concatDequeSpec =
         }
 
     let collectAddEnd (f:_ -> #seq<TestType>) what =
-        { new Operation<SutType, ModelType>() with
+        { new OpType() with
             override __.Run model =
                 let transformed = what |> Seq.collect f
                 let copy = model |> ResizeArray
@@ -93,7 +94,7 @@ let concatDequeSpec =
         }
 
     let collectReplace (f:_ -> #seq<TestType>) what =
-        { new Operation<SutType, ModelType>() with
+        { new OpType() with
             override __.Run model =
                 let transformed = what |> Seq.collect f
                 ResizeArray(transformed)
@@ -104,6 +105,42 @@ let concatDequeSpec =
                 |> Prop.trivial (Seq.isEmpty what)
 
             override __.ToString() = sprintf "collectReplace %A" what
+        }
+
+    let tail =
+        { new OpType() with
+            override __.Run model =
+                let copy = model |> ResizeArray
+                copy.RemoveAt 0
+                copy
+
+            override __.Pre model =
+                model.Count > 0
+
+            override me.Check (sut, model)=
+                sut := !sut |> ConcatDeque.tail
+                !sut |> ConcatDeque.sequenceEqual model
+                |@ me.ToString()
+
+            override __.ToString () = "tail"
+        }
+
+    let spine =
+        { new OpType() with
+            override __.Run model =
+                let copy = model |> ResizeArray
+                copy.RemoveAt(copy.Count - 1)
+                copy
+
+            override __.Pre model =
+                model.Count > 0
+
+            override me.Check (sut, model)=
+                sut := !sut |> ConcatDeque.butLast
+                !sut |> ConcatDeque.sequenceEqual model
+                |@ me.ToString()
+
+            override __.ToString () = "spine"
         }
 
     let create (initial) =
@@ -133,17 +170,20 @@ let concatDequeSpec =
                 let! list = Gen.listOf rndNum
                 return cmd list
             }
+            let withUnit = gen {
+                return! Gen.elements [tail; spine]
+            }
             let forCollect = gen {
                 let! cmd = Gen.elements [collectAddEnd; collectReplace]
                 let! f = Arb.from<TestType -> TestType list> |> Arb.toGen
                 let! list = Gen.listOf rndNum
                 return cmd f list
             }
-            Gen.oneof [withElement; withList; forCollect]
+            Gen.oneof [withUnit; withElement; withList; forCollect]
     }
 
 [<Tests>]
 let modelTests =
     [concatDequeSpec]
-    |> List.map (StateMachine.toProperty >> testProperty "Finger tree")
+    |> List.map (StateMachine.toProperty >> testProperty "ConcatDeque")
     |> testList "Model tests"
