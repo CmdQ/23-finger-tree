@@ -10,6 +10,7 @@ module Messages =
     let onlyList1to4Accepted = "Only lists of length 1 to 4 accepted!"
     let splitPointNotFound = "Split point not found."
     let digitsCannotBeLongerThanFour = "Digits cannot be longer than 4."
+    let indexOutOfRange = "Index has to be greater or equal to 0 and less than the number of elements in the tree."
     let patternMatchImpossible = "Impossible!"
 
 let invalidIndex msg = IndexOutOfRangeException msg |> raise

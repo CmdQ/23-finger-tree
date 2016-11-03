@@ -19,3 +19,20 @@ let fmeasure m = (m :> IMeasured<_, _>).Measure
 
 /// Associatively combine the measures of all elements in a list.
 let mconcat monoids = monoids |> (List.map fmeasure >> List.reduce (fun a b -> a.Add b))
+
+module RandomAccess =
+    [<StructuredFormatDisplay("{Value}")>]
+    type Size(value) =
+        new() = Size 0
+
+        member __.Value = value
+
+        interface IMonoid<Size> with
+            member __.Zero = Size()
+            member __.Add rhs = Size(value + rhs.Value)
+
+    type Value<'a> =
+        | Value of 'a
+
+        interface IMeasured<Size, Value<'a>> with
+            member __.Measure = Size 1

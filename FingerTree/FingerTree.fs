@@ -283,7 +283,7 @@ module FingerTree =
         | Deep(annot, prefix, deeper, suffix) ->
             Deep((fmeasure a).Add annot, prefix |> Digit.prepend a, deeper, suffix)
 
-    let inline ofSomething modul = modul (flip append<'m, 'a>) empty
+    let inline ofSomething f = f (flip append) empty
 
     /// Create a finger tree from a sequence.
     let ofSeq sth = ofSomething Seq.fold sth

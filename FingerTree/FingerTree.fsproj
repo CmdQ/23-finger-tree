@@ -48,7 +48,7 @@
     <Compile Include="Error.fs" />
     <Compile Include="Monoid.fs" />
     <Compile Include="FingerTree.fs" />
-    <None Include="Script.fsx" />
+    <Compile Include="FingerTrees.fs" />
   </ItemGroup>
   <PropertyGroup>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
