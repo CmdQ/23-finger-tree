@@ -61,7 +61,7 @@
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="MyArbitraries.fs" />
     <Compile Include="ConcatDequeTest.fs" />
-    <Compile Include="FingerTreeModelTest.fs" />
+    <Compile Include="ConcatDequeModelTest.fs" />
     <Compile Include="Benchmark.fs" />
     <Compile Include="Program.fs" />
     <None Include="Play.fsx" />
