@@ -82,8 +82,6 @@ type FingerTree<'m, 'a
             | Deep(v, _, _, _) -> v
 
 module Digit =
-    let max = 4
-
     /// Convert a list of values to a digit.
     let ofList = function
         | [a] -> One(a)
@@ -386,7 +384,7 @@ module FingerTree =
             | View(head, Lazy tail) ->
                 deep (Node.toList head) tail suffix
         | _ ->
-            if prefix.Length > Digit.max || suffix.Length > Digit.max then
+            if prefix.Length > CmdQ.FingerTree.Digit.max || suffix.Length > CmdQ.FingerTree.Digit.max then
                 invalidOp Messages.digitsCannotBeLongerThanFour
             else
                 let v = (mconcat prefix).Add(fmeasure deeper).Add(mconcat suffix)
