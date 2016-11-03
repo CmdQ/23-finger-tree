@@ -64,6 +64,7 @@
     <Compile Include="FingerTreeModelTest.fs" />
     <Compile Include="Benchmark.fs" />
     <Compile Include="Program.fs" />
+    <None Include="Play.fsx" />
     <None Include="App.config" />
     <Content Include="packages.config" />
   </ItemGroup>
