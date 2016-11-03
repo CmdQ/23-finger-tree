@@ -1,4 +1,4 @@
-﻿module CmdQ.Monoid
+﻿module CmdQ.FingerTree.Monoids
 
 /// Helper type to make any default-constructable type a singleton.
 type Singleton<'a when 'a : (new : unit -> 'a)> private() =

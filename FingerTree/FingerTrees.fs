@@ -1,7 +1,8 @@
-﻿namespace CmdQ
+﻿namespace CmdQ.FingerTree
 
 open Error
-open Monoid
+open Monoids
+open CmdQ.FingerTree.Monoidal
 
 module RandomAccess =
     open RandomAccess

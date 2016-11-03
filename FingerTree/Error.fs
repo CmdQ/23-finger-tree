@@ -1,4 +1,4 @@
-﻿module CmdQ.Error
+﻿module CmdQ.FingerTree.Error
 
 open System
 

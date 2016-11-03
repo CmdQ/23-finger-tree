@@ -1,8 +1,8 @@
-﻿namespace CmdQ
+﻿namespace CmdQ.FingerTree.Monoidal
 
 open System
-open Error
-open Monoid
+open CmdQ.FingerTree.Error
+open CmdQ.FingerTree.Monoids
 
 /// A 2-3-Node can hold either 2 or 3 elements.
 type Node<'m, 'a when 'm :> IMonoid<'m>> =
