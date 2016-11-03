@@ -46,6 +46,7 @@
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Prelude.fs" />
     <Compile Include="Error.fs" />
+    <Compile Include="FingerTree.fs" />
     <Compile Include="Monoids.fs" />
     <Compile Include="MonoidalFingerTree.fs" />
     <Compile Include="FingerTrees.fs" />

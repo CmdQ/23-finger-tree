@@ -1,4 +1,4 @@
-﻿open CmdQ.Tests
+﻿open CmdQ.FingerTree.Tests
 open Fuchu
 open FsCheck
 

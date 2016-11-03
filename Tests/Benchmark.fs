@@ -1,6 +1,6 @@
-﻿module CmdQ.Tests.Benchmark
+﻿module CmdQ.FingerTree.Tests.Benchmark
 
-open CmdQ
+open CmdQ.FingerTree
 open System
 open System.Diagnostics
 
@@ -40,25 +40,25 @@ module InsertAppendOrDelete =
     type Finger() =
         inherit Benchmark("Insert or append with Finger") with
             let mutable rand = Random(23)
-            let mutable data = CmdQ.FingerTree.empty
+            let mutable data = ConcatDeque.empty
             let mutable size = 0
 
             override __.Init () =
                 rand <- Random(23)
-                data <- CmdQ.FingerTree.empty
+                data <- ConcatDeque.empty
                 size <- 0
 
             override __.OneStep () =
                 base.OneStep()
                 let num = rand.Next()
                 if num % modder = 0 then
-                    data <- data |> FingerTree.prepend num
+                    data <- data |> ConcatDeque.prepend num
                     size <- size + 1
                 elif num % modder = 1 && size > 0 then
-                    data <- data |> FingerTree.tail
+                    data <- data |> ConcatDeque.tail
                     size <- size - 1
                 else
-                    data <- data |> FingerTree.append num
+                    data <- data |> ConcatDeque.append num
                     size <- size + 1
 
     type List() =
@@ -95,22 +95,22 @@ module Divisors =
         inherit Benchmark("Divisors with Finger")
 
         let mutable stopped = 0
-        let mutable data = FingerTree.empty
+        let mutable data = ConcatDeque.empty
 
         override __.Init () =
             stopped <- 0
-            data <- FingerTree.empty
+            data <- ConcatDeque.empty
 
         override __.OneStep () =
             base.OneStep()
             let trials = Array.init arrayLength ((+)stopped)
             let divisors =
                 trials
-                |> Array.Parallel.map (factors >> FingerTree.ofList)
+                |> Array.Parallel.map (factors >> ConcatDeque.ofList)
             let toAdd =
                 divisors
-                |> FingerTree.collect id
-            data <- FingerTree.concat data toAdd
+                |> ConcatDeque.collect id
+            data <- ConcatDeque.concat data toAdd
 
     type Alternative() =
         inherit Benchmark("Divisors with ResizeArray")

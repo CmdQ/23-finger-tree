@@ -1,23 +1,23 @@
 ﻿module CmdQ.Tests.FingerTreeModelTest
 
-open CmdQ
+open CmdQ.FingerTree
 open Fuchu
 open FsCheck
 open FsCheck.Experimental
 
 type TestType = uint16
 type ModelType = ResizeArray<TestType>
-type SutType = FingerTree<TestType> ref
+type SutType = CmdQ.FingerTree.FingerTree<TestType> ref
 
-module FingerTree =
+module ConcatDeque =
     let sequenceEqual seq tree =
-        Seq.zip (FingerTree.toSeq tree) seq
+        Seq.zip (ConcatDeque.toSeq tree) seq
         |> Seq.forall (fun ab -> ab ||> (=))
 
 let fingerTreeSpec =
     let check sut model op changer delta =
         sut := !sut |> changer delta
-        !sut |> FingerTree.sequenceEqual model |@ sprintf "%s: %A" op delta
+        !sut |> ConcatDeque.sequenceEqual model |@ sprintf "%s: %A" op delta
 
     let prepend what =
         { new Operation<SutType, ModelType>() with
@@ -26,7 +26,7 @@ let fingerTreeSpec =
                 copy.Insert(0, what)
                 copy
 
-            override __.Check(sut, model) = check sut model "prepend" FingerTree.prepend what
+            override __.Check(sut, model) = check sut model "prepend" ConcatDeque.prepend what
 
             override __.ToString () = sprintf "prepend %A" what
         }
@@ -38,7 +38,7 @@ let fingerTreeSpec =
                 copy.Add what
                 copy
 
-            override __.Check(sut, model) = check sut model "append" FingerTree.append what
+            override __.Check(sut, model) = check sut model "append" ConcatDeque.append what
 
             override __.ToString () = sprintf "append %A" what
         }
@@ -51,9 +51,9 @@ let fingerTreeSpec =
                 copy
 
             override __.Check(sut, model) =
-                let right = FingerTree.ofList what
-                sut := FingerTree.concat !sut right
-                !sut |> FingerTree.sequenceEqual model
+                let right = ConcatDeque.ofList what
+                sut := ConcatDeque.concat !sut right
+                !sut |> ConcatDeque.sequenceEqual model
                 |> Prop.trivial (what.Length = 0)
 
             override __.ToString () = sprintf "concatRight %A" what
@@ -67,9 +67,9 @@ let fingerTreeSpec =
                 copy
 
             override __.Check(sut, model) =
-                let left = FingerTree.ofList what
-                sut := FingerTree.concat left !sut
-                !sut |> FingerTree.sequenceEqual model
+                let left = ConcatDeque.ofList what
+                sut := ConcatDeque.concat left !sut
+                !sut |> ConcatDeque.sequenceEqual model
                 |> Prop.trivial (what.Length = 0)
 
             override __.ToString () = sprintf "concatLeft %A" what
@@ -84,9 +84,9 @@ let fingerTreeSpec =
                 copy
 
             override __.Check(sut, model) =
-                let add = what |> FingerTree.collect (f >> FingerTree.ofSeq)
-                sut := FingerTree.concat !sut add
-                !sut |> FingerTree.sequenceEqual model
+                let add = what |> ConcatDeque.collect (f >> ConcatDeque.ofSeq)
+                sut := ConcatDeque.concat !sut add
+                !sut |> ConcatDeque.sequenceEqual model
                 |> Prop.trivial (Seq.isEmpty what)
 
             override __.ToString() = sprintf "collectAddEnd %A" what
@@ -99,8 +99,8 @@ let fingerTreeSpec =
                 ResizeArray(transformed)
 
             override __.Check(sut, model) =
-                sut := what |> FingerTree.collect (f >> FingerTree.ofSeq)
-                !sut |> FingerTree.sequenceEqual model
+                sut := what |> ConcatDeque.collect (f >> ConcatDeque.ofSeq)
+                !sut |> ConcatDeque.sequenceEqual model
                 |> Prop.trivial (Seq.isEmpty what)
 
             override __.ToString() = sprintf "collectReplace %A" what
@@ -108,7 +108,7 @@ let fingerTreeSpec =
 
     let create (initial) =
         { new Setup<SutType, ModelType>() with
-            override __.Actual () = ref (FingerTree.ofArray initial)
+            override __.Actual () = ref (ConcatDeque.ofArray initial)
 
             override __.Model () = initial |> ResizeArray
         }
