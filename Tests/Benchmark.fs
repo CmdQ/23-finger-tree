@@ -3,90 +3,104 @@
 open CmdQ.FingerTree
 open PerfUtil
 open System
+open System.Diagnostics
 
 [<AbstractClass>]
 type Operation(name) =
     interface ITestable with
         member __.Name = name
-        member __.Fini () = ()
-        member __.Init () = ()
+        member me.Fini () = me.Fini()
+        member me.Init () = me.Init()
+
+    abstract Init : unit -> unit
+    default __.Init () = ()
+
+    abstract Fini : unit -> unit
+    default __.Fini () = ()
+
     abstract Run : unit -> unit
+
+let timedRun (benchmark:PerformanceTester<#Operation>) id repeat =
+    let sw = Stopwatch.StartNew()
+    benchmark.Run((fun b -> b.Run()), id, repeat)
+    sw.Stop()
+    let s = double sw.ElapsedMilliseconds / 1000.0
+    printfn "\t%.3f s total (%i repetitions with %.3f s each)" s repeat (s / float repeat)
 
 module InsertAppendOrDelete =
     [<AbstractClass>]
-    type Benchmark(name) =
+    type Benchmark(size, name) =
         inherit Operation(name)
 
-        abstract member Step : unit -> unit
+        let rand = Random 23
 
-        abstract member Clear : unit -> unit
+        abstract member PopRight : unit -> unit
+        abstract member Prepend : int -> unit
+        abstract member Append : int -> unit
 
         override me.Run () =
-            for i = 1 to 999 do
-                me.Clear()
-                me.Step()
+            for i = 1 to size do
+                let num = rand.Next()
+                if num % 3 = 0 then
+                    me.Prepend num
+                elif num % 3 = 1 && size > 0 then
+                    me.PopRight()
+                else
+                    me.Append num
 
-    type ConcatDeque() =
-        inherit Benchmark("ConcatDeque")
+    [<Sealed>]
+    type BConcatDeque(size) =
+        inherit Benchmark(size, "ConcatDeque")
 
-        let mutable rand = Random(23)
         let mutable data = ConcatDeque.empty
         let mutable size = 0
 
-        override __.Clear () =
-            rand <- Random(23)
-            data <- ConcatDeque.empty
-            size <- 0
-
-        override __.Step () =
-            let num = rand.Next()
-            if num % 3 = 0 then
-                data <- data |> ConcatDeque.prepend num
-                size <- size + 1
-            elif num % 3 = 1 && size > 0 then
+        override __.PopRight () =
+            if not <| ConcatDeque.isEmpty data then
                 data <- data |> ConcatDeque.tail
                 size <- size - 1
-            else
-                data <- data |> ConcatDeque.append num
-                size <- size + 1
 
-    type List() =
-        inherit Benchmark("ResizeArray")
+        override __.Append num =
+            data <- data |> ConcatDeque.append num
+            size <- size + 1
 
-        let mutable rand = Random(23)
+        override __.Prepend num =
+            data <- data |> ConcatDeque.prepend num
+            size <- size + 1
+
+        override __.Fini () =
+            let a = data |> ConcatDeque.toArray
+            ignore a
+
+    [<Sealed>]
+    type BResizeArray(size) =
+        inherit Benchmark(size, "ResizeArray")
+
         let mutable data = ResizeArray()
 
-        override __.Clear () =
-            rand <- Random(23)
+        override __.Init () =
+            base.Init()
             data <- ResizeArray()
 
-        override __.Step () =
-            let num = rand.Next()
-            if num % 3 = 0 then
-                data.Insert(0, num)
-            elif num % 3 = 1 && data.Count > 0 then
+        override __.PopRight () =
+            if data.Count > 0 then
                 data.RemoveAt(data.Count - 1)
-            else
-                data.Add num
 
-    let testBed = ImplementationComparer<Benchmark>(ConcatDeque(), [List()])
-(*
-    type Finger() =
-        inherit Benchmark("Insert or append with Finger") with
+        override __.Append num =
+            data.Add num
 
-            interface ITestable with
-                member __.Init () =
-                    rand <- Random(23)
-                    data <- ConcatDeque.empty
-                    size <- 0
+        override __.Prepend num =
+            data.Insert(0, num)
 
-            override __.OneStep () =
-                base.OneStep()
+    let titler = sprintf "InsertAppendOrDelete %s"
 
+    let small = let size = 999 in ImplementationComparer<Benchmark>(BConcatDeque(size), [BResizeArray(size)])
+    let large = let size = 99999 in ImplementationComparer<Benchmark>(BConcatDeque(size), [BResizeArray(size)])
+
+    let compareSmall () = timedRun small (titler "small") 700
+    let compareLarge () = timedRun large (titler "large") 7
 
 module Divisors =
-    let arrayLength = 8192
-
     let factors x =
         let rec factors acc d =
             if d > 1 then
@@ -95,44 +109,65 @@ module Divisors =
                 1::acc
         x / 2 |> factors [x]
 
-    type Finger() =
-        inherit Benchmark("Divisors with Finger")
+    [<AbstractClass>]
+    type Benchmark<'a>(size, name) =
+        inherit Operation(name)
 
-        let mutable stopped = 0
-        let mutable data = ConcatDeque.empty
+        let divisors =
+            Array.init size id
+            |> Array.Parallel.map factors
 
-        override __.Init () =
-            stopped <- 0
-            data <- ConcatDeque.empty
+        abstract FromList : int list -> 'a
+        abstract Collect<'b> : ('b -> 'a) -> seq<'b> -> 'a
+        abstract Concat : 'a -> unit
 
-        override __.OneStep () =
-            base.OneStep()
-            let trials = Array.init arrayLength ((+)stopped)
-            let divisors =
-                trials
-                |> Array.Parallel.map (factors >> ConcatDeque.ofList)
+        override me.Run () =
             let toAdd =
                 divisors
-                |> ConcatDeque.collect id
-            data <- ConcatDeque.concat data toAdd
+                |> Array.Parallel.map me.FromList
+                |> me.Collect id
+            me.Concat toAdd
 
-    type Alternative() =
-        inherit Benchmark("Divisors with ResizeArray")
+    [<Sealed>]
+    type BConcatDeque(size) =
+        inherit Benchmark<FingerTree<int>>(size, "ConcatDeque")
 
-        let mutable stopped = 0
-        let mutable data = ResizeArray()
+        let mutable data = ConcatDeque.empty
 
-        override __.Init () =
-            stopped <- 0
-            data <- ResizeArray()
+        override __.FromList x =
+            ConcatDeque.ofList x
 
-        override __.OneStep () =
-            base.OneStep()
-            let trials = Array.init arrayLength ((+)stopped)
-            let divisors =
-                trials
-                |> Array.Parallel.map factors
-            for d in divisors do
-                data.AddRange d
+        override __.Concat x =
+            data <- ConcatDeque.concat data x
 
-                *)
+        override __.Collect f x =
+            x |> ConcatDeque.collect f
+
+    [<Sealed>]
+    type BResizeArray(size) =
+        inherit Benchmark<ResizeArray<int>>(size, "ResizeArray")
+
+        let data = ResizeArray()
+
+        override __.FromList x = ResizeArray x
+
+        override __.Concat x =
+            data.AddRange x
+
+        override __.Collect f x =
+            x |> Seq.collect f |> ResizeArray
+
+    let titler = sprintf "Divisors %s"
+
+    let small = let size = 4096 in ImplementationComparer<Operation>(BConcatDeque(size), [BResizeArray(size)])
+    let large = let size = 65536 in ImplementationComparer<Operation>(BConcatDeque(size), [BResizeArray(size)])
+    let compareSmall () = timedRun small (titler "small") 300
+    let compareLarge () = timedRun large (titler "large") 10
+
+
+let benchmarks = [
+    InsertAppendOrDelete.compareSmall
+    InsertAppendOrDelete.compareLarge
+    Divisors.compareSmall
+    Divisors.compareLarge
+]

@@ -6,7 +6,7 @@ open FsCheck
 let main argv =
     if Array.contains "--benchmark" argv then
         printfn "Benchmarking..."
-        Benchmark.InsertAppendOrDelete.testBed.Run((fun b -> b.Run()), "InsertAppendOrDelete", repeat = 500)
+        Benchmark.benchmarks |> List.iter (fun b -> b())
         0
     else
         Arb.registerByType typeof<MyArbitraries.PosInt>.DeclaringType |> ignore
