@@ -20,6 +20,8 @@ type Operation(name) =
 
     abstract Run : unit -> unit
 
+let perfResults = @"..\..\perfResults.xml"
+
 let timedRun (benchmark:PerformanceTester<#Operation>) id repeat =
     let sw = Stopwatch.StartNew()
     benchmark.Run((fun b -> b.Run()), id, repeat)
@@ -94,8 +96,8 @@ module InsertAppendOrDelete =
 
     let titler = sprintf "InsertAppendOrDelete %s"
 
-    let small = let size = 999 in ImplementationComparer<Benchmark>(BConcatDeque(size), [BResizeArray(size)])
-    let large = let size = 99999 in ImplementationComparer<Benchmark>(BConcatDeque(size), [BResizeArray(size)])
+    let small = let size = 999 in ImplementationComparer<Benchmark>(BConcatDeque(size), [BResizeArray(size)], warmup = true)
+    let large = let size = 99999 in ImplementationComparer<Benchmark>(BConcatDeque(size), [BResizeArray(size)], warmup = true)
 
     let compareSmall () = timedRun small (titler "small") 700
     let compareLarge () = timedRun large (titler "large") 7
@@ -159,15 +161,35 @@ module Divisors =
 
     let titler = sprintf "Divisors %s"
 
-    let small = let size = 4096 in ImplementationComparer<Operation>(BConcatDeque(size), [BResizeArray(size)])
-    let large = let size = 65536 in ImplementationComparer<Operation>(BConcatDeque(size), [BResizeArray(size)])
+    let small = let size = 4096 in ImplementationComparer<Operation>(BConcatDeque(size), [BResizeArray(size)], warmup = true)
+    let large = let size = 65536 in ImplementationComparer<Operation>(BConcatDeque(size), [BResizeArray(size)], warmup = true)
     let compareSmall () = timedRun small (titler "small") 300
     let compareLarge () = timedRun large (titler "large") 10
 
+module ConstructFromArray =
+    let name = "ofArray"
+
+    type Benchmark(size) =
+        inherit Operation(name)
+
+        override __.Run () =
+            for l in [1000..2000..size] do
+                Array.zeroCreate l
+                |> ConcatDeque.ofArray
+                |> ignore
+
+    let test =
+        let bench = Benchmark 100000
+        PastImplementationComparer<Benchmark>(bench, Version(1, 0), warmup = true, historyFile = perfResults)
+
+    let run () =
+        timedRun test name 10
+        test.PersistCurrentResults perfResults
 
 let benchmarks = [
     InsertAppendOrDelete.compareSmall
     InsertAppendOrDelete.compareLarge
     Divisors.compareSmall
     Divisors.compareLarge
+    ConstructFromArray.run
 ]
