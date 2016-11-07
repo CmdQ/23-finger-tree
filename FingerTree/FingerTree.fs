@@ -2,10 +2,6 @@
 
 open Error
 
-[<AutoOpen>]
-module private Helper =
-    let lazyval = Lazy.CreateFromValue
-
 /// A 2-3-Node can hold either 2 or 3 elements.
 type Node<'a> =
     | Node2 of 'a * 'a

@@ -7,6 +7,9 @@ let inline implicit arg = (^b : (static member op_Implicit : ^a -> ^b) arg)
 /// Flip the order of two arguments for a curried function.
 let inline flip f x y = f y x
 
+/// Shorthand to create a lazy from a value.
+let lazyval = Lazy.CreateFromValue
+
 module List =
     /// Return all but the last element of a list. This is O(n).
     let butLast list =

@@ -110,9 +110,9 @@ module Digit =
     /// Promote a digit to a finger tree.
     let promote = function
         | One a -> Single a
-        | Two(a, b) -> Deep(mconcat [a; b], One a, Lazy.CreateFromValue Empty, One b)
-        | Three(a, b, c) -> Deep(mconcat [a; b; c], Two(a, b), Lazy.CreateFromValue Empty, One(c))
-        | Four(a, b, c, d) -> Deep(mconcat [a; b; c; d], Two(a, b), Lazy.CreateFromValue Empty, Two(c, d))
+        | Two(a, b) -> Deep(mconcat [a; b], One a, lazyval Empty, One b)
+        | Three(a, b, c) -> Deep(mconcat [a; b; c], Two(a, b), lazyval Empty, One(c))
+        | Four(a, b, c, d) -> Deep(mconcat [a; b; c; d], Two(a, b), lazyval Empty, Two(c, d))
 
     /// Active pattern to get the left-most element and the rest to the right.
     let (|SplitFirst|_|) = function
@@ -153,7 +153,7 @@ module FingerTree =
             and 'a :> IMeasured<'m, 'a>
         > : FingerTree<'m, 'a> -> View<'m, 'a> = function
         | Empty -> Nil
-        | Single x -> View(x, Lazy.CreateFromValue Empty)
+        | Single x -> View(x, lazyval Empty)
         | Deep(_, One x, deeper, suffix) as tree ->
             let rest = lazy (
                 match viewl deeper.Value with
@@ -179,7 +179,7 @@ module FingerTree =
             and 'a :> IMeasured<'m, 'a>
         > : FingerTree<'m, 'a> -> View<'m, 'a> = function
         | Empty -> Nil
-        | Single x -> View(x, Lazy.CreateFromValue Empty)
+        | Single x -> View(x, lazyval Empty)
         | Deep(_, prefix, deeper, One x) ->
             let rest = lazy (
                 match viewr deeper.Value with
@@ -231,12 +231,12 @@ module FingerTree =
         | Empty -> Single z
         | Single y ->
             let annot = mconcat [y; z]
-            Deep(annot, One y, Lazy.CreateFromValue Empty, One z)
+            Deep(annot, One y, lazyval Empty, One z)
         | Deep(annot, prefix, Lazy deeper, Four(v, w, x, y)) ->
             // Force evaluation here, because the dept has already been paid for.
             Deep(annot.Add (fmeasure z),
                 prefix,
-                Lazy.CreateFromValue(append (Node.ofList [v; w; x]) deeper),
+                lazyval(append (Node.ofList [v; w; x]) deeper),
                 Two(y, z))
         | Deep(v, prefix, deeper, suffix) ->
             Deep(v.Add (fmeasure z), prefix, deeper, suffix |> Digit.append z)
@@ -250,12 +250,12 @@ module FingerTree =
         | Empty -> Single a
         | Single b ->
             let annot = mconcat [a; b]
-            Deep(annot, One a, Lazy.CreateFromValue Empty, One b)
+            Deep(annot, One a, lazyval Empty, One b)
         | Deep(annot, Four(b, c, d, e), Lazy deeper, suffix) ->
             // Force evaluation here, because the dept has already been paid for.
             Deep((fmeasure a).Add annot,
                 Two(a, b),
-                Lazy.CreateFromValue(prepend (Node.ofList [c; d; e]) deeper),
+                lazyval(prepend (Node.ofList [c; d; e]) deeper),
                 suffix)
         | Deep(annot, prefix, deeper, suffix) ->
             Deep((fmeasure a).Add annot, prefix |> Digit.prepend a, deeper, suffix)
@@ -345,7 +345,7 @@ module FingerTree =
                 invalidOp Messages.digitsCannotBeLongerThanFour
             else
                 let v = (mconcat prefix).Add(fmeasure deeper).Add(mconcat suffix)
-                Deep(v, Digit.ofList prefix, Lazy.CreateFromValue deeper, Digit.ofList suffix)
+                Deep(v, Digit.ofList prefix, lazyval deeper, Digit.ofList suffix)
 
     /// Split a finger tree where a predicate becomes true.
     let rec split<'m, 'a
