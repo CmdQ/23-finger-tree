@@ -180,7 +180,7 @@ module ConstructFromArray =
 
     let test =
         let bench = Benchmark 100000
-        PastImplementationComparer<Benchmark>(bench, Version(1, 0), warmup = true, historyFile = perfResults)
+        PastImplementationComparer<Benchmark>(bench, Version(1, 1), warmup = true, historyFile = perfResults)
 
     let run () =
         timedRun test name 10

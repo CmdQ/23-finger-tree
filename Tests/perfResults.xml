@@ -12,4 +12,16 @@
       </gcDelta>
     </testResult>
   </testRun>
+  <testRun id="ofArray v.1.1" hostname="Tobias-2016" date="2016-11-07T11:10:36.8541587+01:00">
+    <testResult testId="ofArray" testDate="2016-11-07T11:10:37.3358529+01:00">
+      <elapsedTime>43391808</elapsedTime>
+      <cpuTime>45937500</cpuTime>
+      <repeat>10</repeat>
+      <gcDelta>
+        <gen0>325</gen0>
+        <gen1>135</gen1>
+        <gen2>34</gen2>
+      </gcDelta>
+    </testResult>
+  </testRun>
 </testSuite>

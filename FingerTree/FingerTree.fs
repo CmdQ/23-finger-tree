@@ -210,9 +210,6 @@ module ConcatDeque =
     /// Create a finger tree from a list.
     let ofList sth = ofSomething List.fold sth
 
-    /// Create a finger tree from an array.
-    let ofArray arr = Array.foldBack prepend arr empty
-
     /// Convert a tree to a sequence, i.e. enumerate all elements left to right.
     let rec toSeq<'a> (tree:FingerTree<'a>) : seq<'a> = seq {
         match tree with
@@ -257,3 +254,48 @@ module ConcatDeque =
 
     /// Apply a mapping to a sequence and merge all resulting finger trees into one.
     let collect mapping = Seq.map mapping >> Seq.fold concat empty
+
+    /// Create a finger tree from an array.
+    let ofArray arr =
+        let digits =
+            let len = Array.length arr
+            Array.init ((len + 3) / 4) (fun i ->
+                let p = i * 4
+                match len - p with
+                | 1 -> One(arr.[p])
+                | 2 -> Two(arr.[p], arr.[p + 1])
+                | 3 -> Three(arr.[p], arr.[p + 1], arr.[p + 2])
+                | _ -> Four(arr.[p], arr.[p + 1], arr.[p + 2], arr.[p + 3])
+            )
+
+        let paired =
+            let len = Array.length digits
+            Array.init ((len + 1) / 2) (fun i ->
+                let p = i * 2
+                if p + 1 = len then
+                    Digit.promote digits.[p]
+                else
+                    Deep(digits.[p], lazyval Empty, digits.[p + 1])
+            )
+
+        let reduce len =
+            let upper = (len + 1) / 2
+            for i = 0 to upper - 1 do
+                let p = i * 2
+                if p + 1 = len then
+                    paired.[i] <- paired.[p]
+                else
+                    paired.[i] <- concat paired.[p] paired.[p + 1]
+            upper
+
+        let rec until1 len =
+            if len = 0 then
+                Empty
+            elif len = 1 then
+                paired.[0]
+            else
+                reduce len |> until1
+
+        until1 paired.Length
+
+
