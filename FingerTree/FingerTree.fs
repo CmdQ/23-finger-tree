@@ -2,6 +2,10 @@
 
 open Error
 
+[<AutoOpen>]
+module private Helper =
+    let lazyval = Lazy.CreateFromValue
+
 /// A 2-3-Node can hold either 2 or 3 elements.
 type Node<'a> =
     | Node2 of 'a * 'a
@@ -73,9 +77,9 @@ module Digit =
     /// Promote a digit to a finger tree.
     let promote = function
         | One a -> Single a
-        | Two(a, b) -> Deep(One a, Lazy.CreateFromValue Empty, One b)
-        | Three(a, b, c) -> Deep(Two(a, b), Lazy.CreateFromValue Empty, One(c))
-        | Four(a, b, c, d) -> Deep(Two(a, b), Lazy.CreateFromValue Empty, Two(c, d))
+        | Two(a, b) -> Deep(One a, lazyval Empty, One b)
+        | Three(a, b, c) -> Deep(Two(a, b), lazyval Empty, One(c))
+        | Four(a, b, c, d) -> Deep(Two(a, b), lazyval Empty, Two(c, d))
 
     /// Active pattern to get the left-most element and the rest to the right.
     let (|SplitFirst|_|) = function
@@ -98,7 +102,7 @@ module ConcatDeque =
     /// Return both the left-most element and the remaining tree (lazily).
     let rec viewl<'a> : FingerTree<'a> -> View<'a> = function
         | Empty -> Nil
-        | Single x -> View(x, Lazy.CreateFromValue Empty)
+        | Single x -> View(x, lazyval Empty)
         | Deep(One x, deeper, suffix) ->
             let rest = lazy (
                 match viewl deeper.Value with
@@ -116,7 +120,7 @@ module ConcatDeque =
     /// Return both the right-most element and the remaining tree (lazily).
     let rec viewr<'a> : FingerTree<'a> -> View<'a> = function
         | Empty -> Nil
-        | Single x -> View(x, Lazy.CreateFromValue Empty)
+        | Single x -> View(x, lazyval Empty)
         | Deep(prefix, deeper, One x) ->
             let rest = lazy (
                 match viewr deeper.Value with
@@ -181,20 +185,20 @@ module ConcatDeque =
     /// Append an element to the right of a tree.
     let rec append<'a> (z:'a) : FingerTree<'a> -> FingerTree<'a> = function
         | Empty -> Single z
-        | Single y -> Deep(One y, Lazy.CreateFromValue Empty, One z)
+        | Single y -> Deep(One y, lazyval Empty, One z)
         | Deep(prefix, Lazy deeper, Four(v, w, x, y)) ->
             // Force evaluation here, because the dept has already been paid for.
-            Deep(prefix, Lazy.CreateFromValue(append (Node3(v, w, x)) deeper), Two(y, z))
+            Deep(prefix, lazyval(append (Node3(v, w, x)) deeper), Two(y, z))
         | Deep(prefix, deeper, suffix) ->
             Deep(prefix, deeper, suffix |> Digit.append z)
 
     /// Prepend an element to the left of a tree.
     let rec prepend<'a> (a:'a) : FingerTree<'a> -> FingerTree<'a> = function
         | Empty -> Single a
-        | Single b -> Deep(One a, Lazy.CreateFromValue Empty, One b)
+        | Single b -> Deep(One a, lazyval Empty, One b)
         | Deep(Four(b, c, d, e), Lazy deeper, suffix) ->
             // Force evaluation here, because the dept has already been paid for.
-            Deep(Two(a, b), Lazy.CreateFromValue(prepend (Node3(c, d, e)) deeper), suffix)
+            Deep(Two(a, b), lazyval(prepend (Node3(c, d, e)) deeper), suffix)
         | Deep(prefix, deeper, suffix) ->
             Deep(prefix |> Digit.prepend a, deeper, suffix)
 
