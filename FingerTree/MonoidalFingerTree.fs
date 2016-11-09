@@ -200,30 +200,6 @@ module FingerTree =
             )
             View(x, lazyRest)
 
-    /// The empty finger tree.
-    let empty = Empty
-
-    /// Tests whether a finger tree is empty.
-    let isEmpty = Basic.isEmpty
-
-    /// Return the head of the finger tree (i.e. the left-most element).
-    let head = Basic.head
-
-    /// Return the tail of the tree, i.e. all but the first element.
-    let tail = Basic.tail
-
-    /// Return the last (i.e. the right-most) element of the finger tree.
-    let last = Basic.last
-
-    /// Return the spine of the tree, i.e. all but the last element.
-    let butLast = Basic.butLast
-
-    /// Return both the head and the tail at once.
-    let (|PopLeft|_|) = Basic.(|PopLeft|_|)
-
-    /// Return both the spine and the last element at once.
-    let (|PopRight|_|) = Basic.(|PopRight|_|)
-
     /// Append an element to the right of a tree.
     let rec append<'m, 'a
         when 'm :> IMonoid<'m>
@@ -262,24 +238,6 @@ module FingerTree =
         | Deep(annot, prefix, deeper, suffix) ->
             Deep((fmeasure a).Add annot, prefix |> Digit.prepend a, deeper, suffix)
 
-    /// Create a finger tree from a sequence.
-    let ofSeq = Basic.ofSeq
-
-    /// Create a finger tree from a list.
-    let ofList = Basic.ofList
-
-    /// Create a finger tree from an array.
-    let ofArray = Basic.ofArray
-
-    /// Convert a tree to a sequence, i.e. enumerate all elements left to right.
-    let toSeq = Basic.toSeq
-
-    /// Convert a tree to an array (left to right).
-    let toArray<'a> = Basic.toArray<'a>
-
-    /// Convert a tree to a list (left to right).
-    let toList = Basic.toList
-
     /// Concatenate two trees while putting a list of elements in the middle.
     let rec
         concatWithMiddle<'m, 'a
@@ -297,7 +255,7 @@ module FingerTree =
             let deeper = lazy (
                 let leftList = leftSuffix |> Digit.toList
                 let rightList = rightPrefix |> Digit.toList
-                let middle' = leftList @ middle @ rightList |> Node.toNodeList
+                let middle' = List.concat [leftList; middle; rightList] |> Node.toNodeList
                 concatWithMiddle(leftDeeper.Value, middle', rightDeeper.Value)
             )
             Deep(leftAnnot.Add rightAnnot, leftPrefix, deeper, rightSuffix)
@@ -305,13 +263,11 @@ module FingerTree =
     /// Concatenate two finger trees.
     let concat left right = concatWithMiddle(left, [], right)
 
-    /// Apply a mapping to a sequence and merge all resulting finger trees into one.
-    let collect = Basic.collect
-
     /// Split a list where a predicate becomes true.
     let rec splitList pred (start:IMonoid<_>) = function
         | [] -> invalidIndex Messages.splitPointNotFound
         | (x::xs) as list ->
+            assert(list.Length <= CmdQ.FingerTree.Digit.max)
             let start = start.Add(fmeasure x)
             if pred start then
                 [], list
@@ -355,7 +311,8 @@ module FingerTree =
             and 'm : (new : unit -> 'm)
             and 'a :> IMeasured<'m, 'a>
         > (pred:'m -> bool) (start:'m) : FingerTree<'m, 'a> -> Split<'m, 'a> = function
-        | Empty -> invalidArg "" Messages.treeIsEmpty
+        | Empty ->
+            invalidArg "" Messages.treeIsEmpty
         | Single x when start.Add(fmeasure x) |> pred ->
             Split(Empty, x, Empty)
         | Deep(total, prefix, deeper, suffix) when start.Add total |> pred ->

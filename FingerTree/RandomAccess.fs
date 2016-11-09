@@ -10,7 +10,7 @@ module RandomAccess =
 
     let inline unpack (Value v) = v
 
-    let empty : Tree<_> = FingerTree.empty
+    let empty : Tree<_> = Empty
 
     let isEmpty : Tree<_> -> bool = function
         | Empty -> true
@@ -28,11 +28,13 @@ module RandomAccess =
 
     let ofArray array = array |> ofSomething Array.fold
 
-    let rec toList (tree:Tree<_>) =
-        match FingerTree.viewl tree with
-        | View(Value v, Lazy rest) ->
-            v::toList rest
-        | Nil -> []
+    let toList tree =
+        let rec toList acc (tree:Tree<_>) =
+            match FingerTree.viewr tree with
+            | View(Value v, Lazy rest) ->
+                rest |> toList (v::acc)
+            | Nil -> acc
+        toList [] tree
 
     let toSeq tree = tree |> (toList >> List.toSeq)
 
@@ -45,11 +47,35 @@ module RandomAccess =
             match FingerTree.viewl tree with
             | View(Value v, Lazy rest) ->
                 re.[i] <- v
-                rest |> toArray (i + 1)
+                toArray (i + 1) rest
             | Nil ->
                 assert(i = re.Length)
         toArray 0 tree
         re
+
+    let concat (left:Tree<_>) (right:Tree<_>) : Tree<_> = FingerTree.concat left right
+
+    let head (tree:Tree<_>) =
+        match FingerTree.viewl tree with
+        | View(Value v, _) -> v
+        | _ -> invalidArg "tree" Messages.treeIsEmpty
+
+    let tail (tree:Tree<_>) : Tree<_> =
+        match FingerTree.viewl tree with
+        | View(_, Lazy t) -> t
+        | _ -> invalidArg "tree" Messages.treeIsEmpty
+
+    let last (tree:Tree<_>) =
+        match FingerTree.viewr tree with
+        | View(Value v, _) -> v
+        | _ -> invalidArg "tree" Messages.treeIsEmpty
+
+    let butLast (tree:Tree<_>) : Tree<_> =
+        match FingerTree.viewr tree with
+        | View(_, Lazy t) -> t
+        | _ -> invalidArg "tree" Messages.treeIsEmpty
+
+    let collect mapping = Seq.map mapping >> Seq.fold concat Empty
 
     let outsideError () = invalidIndex Messages.indexOutOfRange
 
