@@ -4,9 +4,23 @@ open CmdQ.FingerTree
 open MyArbitraries
 open Fuchu
 open FsCheck
+open Swensen.Unquote
 
 module ConcatDeque =
     let length<'a> = ConcatDeque.toSeq<'a> >> Seq.length
+
+    let rec depth<'a> (d:int) : FingerTree<'a> -> int = function
+        | Empty -> d
+        | Single _ -> d + 1
+        | Deep(_, Lazy deeper, _) ->
+            depth (d + 1) deeper
+
+[<Tests>]
+let stackOverflowTest =
+    let tree = seq { 1..999999 } |> ConcatDeque.ofSeq
+    let depth = ConcatDeque.depth 0 tree
+    tree |> ConcatDeque.toList |> ignore
+    depth >! 2
 
 [<Tests>]
 let properties =
