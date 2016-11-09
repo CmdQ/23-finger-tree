@@ -1,8 +1,10 @@
 ﻿#r @"..\FingerTree\bin\Debug\FingerTree.dll"
-
 open CmdQ.FingerTree
 
-let test = RandomAccess.ofList [1..20]
+let test = seq {1..200000} |> ConcatDeque.ofSeq
+let back = test |> ConcatDeque.toList
+
+let test = RandomAccess.ofList []
 test |> RandomAccess.toList |> printfn "%A"
 test |> RandomAccess.tryItem 0
 test |> RandomAccess.tryItem 5

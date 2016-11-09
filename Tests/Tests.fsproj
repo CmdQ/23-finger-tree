@@ -38,7 +38,8 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
     <DocumentationFile>bin\Release\Tests.XML</DocumentationFile>
     <Prefer32Bit>false</Prefer32Bit>
-    <StartArguments>--benchmark</StartArguments>
+    <StartArguments>
+    </StartArguments>
   </PropertyGroup>
   <PropertyGroup>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
@@ -61,7 +62,7 @@
     <Compile Include="MyArbitraries.fs" />
     <Compile Include="ConcatDequeTest.fs" />
     <Compile Include="RandomAccessTest.fs" />
-    <Compile Include="ConcatDequeModelTest.fs" />
+    <Compile Include="RandomAccessModelTest.fs" />
     <Compile Include="Benchmark.fs" />
     <Compile Include="Program.fs" />
     <None Include="Play.fsx" />
