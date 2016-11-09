@@ -21,7 +21,7 @@ let fmeasure m = (m :> IMeasured<_, _>).Measure
 let mconcat monoids = monoids |> (List.map fmeasure >> List.reduce (fun a b -> a.Add b))
 
 module RandomAccess =
-    [<StructuredFormatDisplay("{Value}")>]
+    [<Sealed>]
     type Size(value) =
         new() = Size 0
 
@@ -31,8 +31,14 @@ module RandomAccess =
             member __.Zero = Size()
             member __.Add rhs = Size(value + rhs.Value)
 
+        override __.ToString () = sprintf "Count = %i" value
+
     type Value<'a> =
         | Value of 'a
 
         interface IMeasured<Size, Value<'a>> with
             member __.Measure = Size 1
+
+        override me.ToString () =
+            match me with
+            | Value v -> v.ToString()

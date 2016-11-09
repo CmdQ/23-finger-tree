@@ -198,7 +198,7 @@ module ConcatDeque =
         | Deep(prefix, deeper, suffix) ->
             Deep(prefix |> Digit.prepend a, deeper, suffix)
 
-    let inline ofSomething f = f (flip append) empty
+    let inline ofSomething f = f (flip append) Empty
 
     /// Create a finger tree from a sequence.
     let ofSeq sth = ofSomething Seq.fold sth
@@ -249,7 +249,7 @@ module ConcatDeque =
     let concat left right = concatWithMiddle(left, [], right)
 
     /// Apply a mapping to a sequence and merge all resulting finger trees into one.
-    let collect mapping = Seq.map mapping >> Seq.fold concat empty
+    let collect mapping = Seq.map mapping >> Seq.fold concat Empty
 
     /// Create a finger tree from an array.
     let ofArray arr =

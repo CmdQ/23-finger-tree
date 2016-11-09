@@ -49,7 +49,7 @@
     <Compile Include="FingerTree.fs" />
     <Compile Include="Monoids.fs" />
     <Compile Include="MonoidalFingerTree.fs" />
-    <Compile Include="FingerTrees.fs" />
+    <Compile Include="RandomAccess.fs" />
   </ItemGroup>
   <PropertyGroup>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
