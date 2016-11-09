@@ -222,10 +222,12 @@ module ConcatDeque =
     let toArray<'a> = toSeq<'a> >> Seq.toArray
 
     /// Convert a tree to a list (left to right).
-    let rec toList tree =
-        match viewl tree with
-        | Nil -> []
-        | View(head, Lazy tail) -> head::(toList tail)
+    let toList tree =
+        let rec toList acc tree =
+            match viewr tree with
+            | Nil -> acc
+            | View(head, Lazy tail) -> tail |> toList (head::acc)
+        toList [] tree
 
     /// Concatenate two trees while putting a list of elements in the middle.
     let rec concatWithMiddle<'a> : FingerTree<'a> * 'a list * FingerTree<'a> -> FingerTree<'a> = function
