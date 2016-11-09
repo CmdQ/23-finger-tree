@@ -20,11 +20,9 @@ type Operation(name) =
 
     abstract Run : unit -> unit
 
-let perfResults = @"..\..\perfResults.xml"
-
-let timedRun (benchmark:PerformanceTester<#Operation>) id repeat =
+let timedRun (benchmark:PerformanceTester<#Operation>) header repeat =
     let sw = Stopwatch.StartNew()
-    benchmark.Run((fun b -> b.Run()), id, repeat)
+    benchmark.Run((fun b -> b.Run()), header, repeat)
     sw.Stop()
     let s = double sw.ElapsedMilliseconds / 1000.0
     printfn "\t%.3f s total (%i repetitions with %.3f s each)" s repeat (s / float repeat)
@@ -167,10 +165,11 @@ module Divisors =
     let compareLarge () = timedRun large (titler "large") 10
 
 module ConstructFromArray =
-    let name = "ofArray"
+    let name = "ConstructFromArray"
+    let file = name + ".xml"
 
     type Benchmark(size) =
-        inherit Operation(name)
+        inherit Operation("ofArray")
 
         override __.Run () =
             for l in [1000..2000..size] do
@@ -180,11 +179,41 @@ module ConstructFromArray =
 
     let test =
         let bench = Benchmark 100000
-        PastImplementationComparer<Benchmark>(bench, Version(1, 1), warmup = true, historyFile = perfResults)
+        PastImplementationComparer<Benchmark>(bench, Version(1, 1), warmup = true, historyFile = file)
 
     let run () =
         timedRun test name 10
-        test.PersistCurrentResults perfResults
+        test.PersistCurrentResults file
+
+module DeconstructTree =
+    let name = "DeconstructTree"
+    let file = name + ".xml"
+
+    [<AbstractClass>]
+    type Benchmark(name) =
+        inherit Operation(name)
+
+        static member Tree = seq { 1 .. 10000 } |> ConcatDeque.ofSeq
+
+    type List() =
+        inherit Benchmark("toList")
+
+        override __.Run () =
+            Benchmark.Tree |> ConcatDeque.toList |> ignore
+
+    type Array() =
+        inherit Benchmark("toArray")
+
+        override __.Run () =
+            Benchmark.Tree |> ConcatDeque.toArray |> ignore
+
+    let versus = ImplementationComparer<Benchmark>(Array(), [List()], warmup = true)
+    let compare () = timedRun versus "DeconstructTree" 600
+
+    let listAlone = PastImplementationComparer<List>(List(), Version(1, 0), warmup = true, historyFile = file)
+    let history () =
+        timedRun listAlone "DeconstructTree" 700
+        listAlone.PersistCurrentResults file
 
 let benchmarks = [
     InsertAppendOrDelete.compareSmall
@@ -192,4 +221,6 @@ let benchmarks = [
     Divisors.compareSmall
     Divisors.compareLarge
     ConstructFromArray.run
+    DeconstructTree.compare
+    DeconstructTree.history
 ]
