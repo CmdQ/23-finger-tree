@@ -60,6 +60,7 @@
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="MyArbitraries.fs" />
     <Compile Include="ConcatDequeTest.fs" />
+    <Compile Include="ConcatDequeModelTest.fs" />
     <Compile Include="RandomAccessTest.fs" />
     <Compile Include="RandomAccessModelTest.fs" />
     <Compile Include="Benchmark.fs" />
