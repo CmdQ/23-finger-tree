@@ -226,7 +226,7 @@ module ConcatDeque =
         let rec toList acc tree =
             match viewr tree with
             | Nil -> acc
-            | View(head, Lazy tail) -> tail |> toList (head::acc)
+            | View(head, Lazy tail) -> toList (head::acc) tail
         toList [] tree
 
     /// Concatenate two trees while putting a list of elements in the middle.
@@ -292,7 +292,7 @@ module ConcatDeque =
             elif len = 1 then
                 paired.[0]
             else
-                reduce len |> until1
+                until1 (reduce len)
 
         until1 paired.Length
 
