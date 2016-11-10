@@ -5,7 +5,7 @@ open Fuchu
 open FsCheck
 open FsCheck.Experimental
 
-type TestType = string
+type TestType = int16
 type ModelType = ResizeArray<TestType>
 type SutType = CmdQ.FingerTree.RandomAccess.Tree<TestType> ref
 type OpType = Operation<SutType, ModelType>
@@ -76,35 +76,23 @@ let concatDequeSpec =
             override __.ToString () = sprintf "concatLeft %A" what
         }
 
-    let collectAddEnd (f:_ -> #seq<TestType>) what =
+    let replace where what =
         { new OpType() with
             override __.Run model =
-                let transformed = what |> Seq.collect f
                 let copy = model |> ResizeArray
-                copy.AddRange transformed
+                copy.[where] <- what
                 copy
 
-            override __.Check(sut, model) =
-                let add = what |> RandomAccess.collect (f >> RandomAccess.ofSeq)
-                sut := RandomAccess.concat !sut add
-                !sut |> RandomAccess.sequenceEqual model
-                |> Prop.trivial (Seq.isEmpty what)
-
-            override __.ToString() = sprintf "collectAddEnd %A" what
-        }
-
-    let collectReplace (f:_ -> #seq<TestType>) what =
-        { new OpType() with
-            override __.Run _ =
-                let transformed = what |> Seq.collect f
-                ResizeArray(transformed)
+            override __.Pre model =
+                where >= 0 && where < model.Count
 
             override __.Check(sut, model) =
-                sut := what |> RandomAccess.collect (f >> RandomAccess.ofSeq)
+                let before = RandomAccess.get !sut where
+                sut := RandomAccess.set !sut where what
                 !sut |> RandomAccess.sequenceEqual model
-                |> Prop.trivial (Seq.isEmpty what)
+                |> Prop.trivial (what = before)
 
-            override __.ToString() = sprintf "collectReplace %A" what
+            override __.ToString () = sprintf "replace .[%i] <- %A" where what
         }
 
     let tail =
@@ -165,6 +153,11 @@ let concatDequeSpec =
                 let! num = rndNum
                 return cmd num
             }
+            let withPositionAsPercentAndElement = gen {
+                let! percent = Gen.choose(0, 101)
+                let! elm = rndNum
+                return replace percent elm
+            }
             let withList = gen {
                 let! cmd = Gen.elements [concatLeft; concatRight]
                 let! list = Gen.listOf rndNum
@@ -173,13 +166,7 @@ let concatDequeSpec =
             let withUnit = gen {
                 return! Gen.elements [tail; spine]
             }
-            let forCollect = gen {
-                let! cmd = Gen.elements [collectAddEnd; collectReplace]
-                let! f = Arb.from<TestType -> TestType list> |> Arb.toGen
-                let! list = Gen.listOf rndNum
-                return cmd f list
-            }
-            Gen.frequency [3, withUnit; 3, withElement; 2, withList; 1, forCollect]
+            Gen.frequency [3, withUnit; 3, withElement; 3, withPositionAsPercentAndElement; 1, withList]
     }
 
 [<Tests>]
