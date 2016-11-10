@@ -9,5 +9,6 @@ let main argv =
         Benchmark.benchmarks |> List.iter (fun b -> b())
         0
     else
+        printfn "Running tests..."
         Arb.registerByType typeof<MyArbitraries.PosInt>.DeclaringType |> ignore
         Tests.defaultMainThisAssembly argv

@@ -95,7 +95,7 @@ let concatDequeSpec =
 
     let collectReplace (f:_ -> #seq<TestType>) what =
         { new OpType() with
-            override __.Run model =
+            override __.Run _ =
                 let transformed = what |> Seq.collect f
                 ResizeArray(transformed)
 
@@ -179,7 +179,7 @@ let concatDequeSpec =
                 let! list = Gen.listOf rndNum
                 return cmd f list
             }
-            Gen.oneof [withUnit; withElement; withList; forCollect]
+            Gen.frequency [3, withUnit; 3, withElement; 2, withList; 1, forCollect]
     }
 
 [<Tests>]

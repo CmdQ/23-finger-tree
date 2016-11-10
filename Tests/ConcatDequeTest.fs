@@ -5,6 +5,7 @@ open MyArbitraries
 open Fuchu
 open FsCheck
 open Swensen.Unquote
+open System.Diagnostics
 
 module ConcatDeque =
     let length<'a> = ConcatDeque.toSeq<'a> >> Seq.length
@@ -15,12 +16,32 @@ module ConcatDeque =
         | Deep(_, Lazy deeper, _) ->
             depth (d + 1) deeper
 
+type OnlyInRelease(length) as this =
+
+    let mutable isDebug = false
+
+    do this.SetFlag()
+
+    member private me.SetFlag () =
+        me.OnlyInDebug()
+
+    [<Conditional("DEBUG")>]
+    member private __.OnlyInDebug () =
+        isDebug <- true
+
+    member __.OnlyInRelease() =
+        if not isDebug then
+            let tree = seq { 1..length } |> ConcatDeque.ofSeq
+            tree |> ConcatDeque.toList
+        else
+            [42]
+
 [<Tests>]
 let stackOverflowTest =
-    let tree = seq { 1..999999 } |> ConcatDeque.ofSeq
-    let depth = ConcatDeque.depth 0 tree
-    tree |> ConcatDeque.toList |> ignore
-    depth >! 2
+    let length = 999999
+    let mode = OnlyInRelease(length)
+    let list = mode.OnlyInRelease()
+    List.isEmpty list =! false
 
 [<Tests>]
 let properties =
