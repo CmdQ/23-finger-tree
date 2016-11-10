@@ -276,24 +276,4 @@ module ConcatDeque =
                     Deep(digits.[p], lazyval Empty, digits.[p + 1])
             )
 
-        let reduce len =
-            let upper = (len + 1) / 2
-            for i = 0 to upper - 1 do
-                let p = i * 2
-                if p + 1 = len then
-                    paired.[i] <- paired.[p]
-                else
-                    paired.[i] <- concat paired.[p] paired.[p + 1]
-            upper
-
-        let rec until1 len =
-            if len = 0 then
-                Empty
-            elif len = 1 then
-                paired.[0]
-            else
-                until1 (reduce len)
-
-        until1 paired.Length
-
-
+        paired |> Array.reduce concat

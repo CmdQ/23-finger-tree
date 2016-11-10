@@ -177,9 +177,7 @@ module ConstructFromArray =
                 |> ConcatDeque.ofArray
                 |> ignore
 
-    let test =
-        let bench = Benchmark 100000
-        PastImplementationComparer<Benchmark>(bench, Version(1, 1), warmup = true, historyFile = file)
+    let test = PastImplementationComparer<Benchmark>(Benchmark 100000, Version(1, 2), warmup = true, historyFile = file)
 
     let run () =
         timedRun test name 10
@@ -208,11 +206,11 @@ module DeconstructTree =
             Benchmark.Tree |> ConcatDeque.toArray |> ignore
 
     let versus = ImplementationComparer<Benchmark>(Array(), [List()], warmup = true)
-    let compare () = timedRun versus "DeconstructTree" 600
+    let compare () = timedRun versus name 600
 
     let listAlone = PastImplementationComparer<List>(List(), Version(1, 0), warmup = true, historyFile = file)
     let history () =
-        timedRun listAlone "DeconstructTree" 700
+        timedRun listAlone name 700
         listAlone.PersistCurrentResults file
 
 let benchmarks = [

@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <testSuite suiteName="ofArray">
   <testRun id="ofArray v.1.0" hostname="Tobias-2016" date="2016-11-07T09:18:14.9308573+01:00">
-    <testResult testId="ofArray" testDate="2016-11-07T09:18:15.7069127+01:00">
+    <testResult testId="ConstructFromArray" testDate="2016-11-07T09:18:15.7069127+01:00">
       <elapsedTime>55188042</elapsedTime>
       <cpuTime>55312500</cpuTime>
       <repeat>10</repeat>
@@ -13,7 +13,7 @@
     </testResult>
   </testRun>
   <testRun id="ofArray v.1.1" hostname="Tobias-2016" date="2016-11-07T11:10:36.8541587+01:00">
-    <testResult testId="ofArray" testDate="2016-11-07T11:10:37.3358529+01:00">
+    <testResult testId="ConstructFromArray" testDate="2016-11-07T11:10:37.3358529+01:00">
       <elapsedTime>43391808</elapsedTime>
       <cpuTime>45937500</cpuTime>
       <repeat>10</repeat>
