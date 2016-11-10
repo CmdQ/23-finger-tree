@@ -13,4 +13,7 @@ module Messages =
     let indexOutOfRange = "Index has to be greater or equal to 0 and less than the number of elements in the tree."
     let patternMatchImpossible = "Impossible!"
 
-let invalidIndex msg = IndexOutOfRangeException msg |> raise
+/// Raise an IndexOutOfRangeException with a message.
+let inline invalidIndex msg =
+    // This is inline, so that the stack trace is at the right location instead of here.
+    IndexOutOfRangeException msg |> raise
