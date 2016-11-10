@@ -276,4 +276,5 @@ module ConcatDeque =
                     Deep(digits.[p], lazyval Empty, digits.[p + 1])
             )
 
+        if paired.Length = 0 then Empty else
         paired |> Array.reduce concat
