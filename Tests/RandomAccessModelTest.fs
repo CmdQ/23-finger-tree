@@ -8,7 +8,22 @@ open FsCheck.Experimental
 type TestType = int16
 type ModelType = ResizeArray<TestType>
 type SutType = CmdQ.FingerTree.RandomAccess.Tree<TestType> ref
-type OpType = Operation<SutType, ModelType>
+
+[<AbstractClass>]
+type OpType() =
+    inherit Operation<SutType, ModelType>()
+
+    abstract member DoCheck : SutType * ModelType -> Property
+    abstract member DoRun : ModelType -> unit
+
+    override me.Run model =
+        let copy = ResizeArray model
+        me.DoRun copy
+        copy
+
+    override me.Check(sut, model) =
+        let re = me.DoCheck(sut, model)
+        re
 
 module RandomAccess =
     let sequenceEqual seq tree =
@@ -22,36 +37,30 @@ let concatDequeSpec =
 
     let prepend what =
         { new OpType() with
-            override __.Run model =
-                let copy = model |> ResizeArray
-                copy.Insert(0, what)
-                copy
+            override __.DoRun model =
+                model.Insert(0, what)
 
-            override __.Check(sut, model) = check sut model "prepend" RandomAccess.prepend what
+            override __.DoCheck(sut, model) = check sut model "prepend" RandomAccess.prepend what
 
             override __.ToString () = sprintf "prepend %A" what
         }
 
     let append what =
         { new OpType() with
-            override __.Run model =
-                let copy = model |> ResizeArray
-                copy.Add what
-                copy
+            override __.DoRun model =
+                model.Add what
 
-            override __.Check(sut, model) = check sut model "append" RandomAccess.append what
+            override __.DoCheck(sut, model) = check sut model "append" RandomAccess.append what
 
             override __.ToString () = sprintf "append %A" what
         }
 
     let concatRight what =
         { new OpType() with
-            override __.Run model =
-                let copy = model |> ResizeArray
-                copy.AddRange what
-                copy
+            override __.DoRun model =
+                model.AddRange what
 
-            override __.Check(sut, model) =
+            override __.DoCheck(sut, model) =
                 let right = RandomAccess.ofList what
                 sut := RandomAccess.concat !sut right
                 !sut |> RandomAccess.sequenceEqual model
@@ -62,12 +71,10 @@ let concatDequeSpec =
 
     let concatLeft what =
         { new OpType() with
-            override __.Run model =
-                let copy = model |> ResizeArray
-                copy.InsertRange(0, what)
-                copy
+            override __.DoRun model =
+                model.InsertRange(0, what)
 
-            override __.Check(sut, model) =
+            override __.DoCheck(sut, model) =
                 let left = RandomAccess.ofList what
                 sut := RandomAccess.concat left !sut
                 !sut |> RandomAccess.sequenceEqual model
@@ -78,15 +85,13 @@ let concatDequeSpec =
 
     let replace where what =
         { new OpType() with
-            override __.Run model =
-                let copy = model |> ResizeArray
-                copy.[where] <- what
-                copy
+            override __.DoRun model =
+                model.[where] <- what
 
             override __.Pre model =
                 where >= 0 && where < model.Count
 
-            override __.Check(sut, model) =
+            override __.DoCheck(sut, model) =
                 let before = RandomAccess.get !sut where
                 sut := RandomAccess.set !sut where what
                 !sut |> RandomAccess.sequenceEqual model
@@ -97,15 +102,13 @@ let concatDequeSpec =
 
     let tail =
         { new OpType() with
-            override __.Run model =
-                let copy = model |> ResizeArray
-                copy.RemoveAt 0
-                copy
+            override __.DoRun model =
+                model.RemoveAt 0
 
             override __.Pre model =
                 model.Count > 0
 
-            override me.Check (sut, model)=
+            override me.DoCheck (sut, model)=
                 sut := !sut |> RandomAccess.tail
                 !sut |> RandomAccess.sequenceEqual model
                 |@ me.ToString()
@@ -115,15 +118,13 @@ let concatDequeSpec =
 
     let spine =
         { new OpType() with
-            override __.Run model =
-                let copy = model |> ResizeArray
-                copy.RemoveAt(copy.Count - 1)
-                copy
+            override __.DoRun model =
+                model.RemoveAt(model.Count - 1)
 
             override __.Pre model =
                 model.Count > 0
 
-            override me.Check (sut, model)=
+            override me.DoCheck (sut, model)=
                 sut := !sut |> RandomAccess.butLast
                 !sut |> RandomAccess.sequenceEqual model
                 |@ me.ToString()
@@ -167,6 +168,7 @@ let concatDequeSpec =
                 return! Gen.elements [tail; spine]
             }
             Gen.frequency [3, withUnit; 3, withElement; 3, withPositionAsPercentAndElement; 1, withList]
+            |> Gen.map (fun g -> upcast g)
     }
 
 [<Tests>]
