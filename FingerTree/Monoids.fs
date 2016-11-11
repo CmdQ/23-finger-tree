@@ -11,11 +11,11 @@ type IMonoid<'m> =
     abstract Plus:'m -> 'm
 
 /// A type that provides access to its measure.
-type IMeasured<'m, 'a when 'm :> IMonoid<'m>> =
+type IMeasured<'m when 'm :> IMonoid<'m>> =
     abstract Measure:'m
 
 /// Return the measure of a measured type.
-let fmeasure m = (m :> IMeasured<_, _>).Measure
+let fmeasure m = (m :> IMeasured<_>).Measure
 
 /// Associatively combine the measures of all elements in a list.
 let mconcat monoids = monoids |> (List.map fmeasure >> List.reduce (fun a b -> a.Plus b))
@@ -36,7 +36,7 @@ module RandomAccess =
     type Value<'a> =
         | Value of 'a
 
-        interface IMeasured<Size, Value<'a>> with
+        interface IMeasured<Size> with
             member __.Measure = Size 1
 
         override me.ToString () =

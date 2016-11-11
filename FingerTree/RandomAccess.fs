@@ -112,7 +112,7 @@ module RandomAccess =
         ) index tree
 
     let rec depthCheck<'a
-        when 'a :> IMeasured<Size, 'a>
+        when 'a :> IMeasured<Size>
         > : FingerTree<Size, 'a> -> int = function
         | Empty -> 0
         | Single _ -> 1

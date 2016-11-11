@@ -11,7 +11,7 @@ type Node<'m, 'a when 'm :> IMonoid<'m>> =
     | Node2 of 'm * 'a * 'a
     | Node3 of 'm * 'a * 'a * 'a
 
-    interface IMeasured<'m, Node<'m, 'a>> with
+    interface IMeasured<'m> with
         member me.Measure =
             match me with
             | Node2(v, _, _) -> v
@@ -42,7 +42,7 @@ module Node =
 /// A digit holds at least 1 and up to 4 elements.
 type Digit<'m, 'a
     when 'm :> IMonoid<'m>
-        and 'a :> IMeasured<'m, 'a>
+        and 'a :> IMeasured<'m>
     > =
     | One of 'a
     | Two of 'a * 'a
@@ -57,7 +57,7 @@ type Digit<'m, 'a
         | Three(a, b, c) -> [a; b; c]
         | Four(a, b, c, d) -> [a; b; c; d]
 
-    interface IMeasured<'m, 'a> with
+    interface IMeasured<'m> with
         member me.Measure = me.ToList() |> mconcat
 
 /// A finger tree is either empty, holds a single elements or gets recursive with a prefix and a suffix of digits.
@@ -66,7 +66,7 @@ type Digit<'m, 'a
 type FingerTree<'m, 'a
     when 'm :> IMonoid<'m>
         and 'm : (new : unit -> 'm)
-        and 'a :> IMeasured<'m, 'a>
+        and 'a :> IMeasured<'m>
     > =
     | Empty
     | Single of 'a
@@ -74,7 +74,7 @@ type FingerTree<'m, 'a
 
     member __.Monoid = Singleton.Instance
 
-    interface IMeasured<'m, 'a> with
+    interface IMeasured<'m> with
         member me.Measure =
             match me with
             | Empty ->
@@ -138,14 +138,14 @@ module Digit =
 type View<'m, 'a
     when 'm :> IMonoid<'m>
         and 'm : (new : unit -> 'm)
-        and 'a :> IMeasured<'m, 'a>
+        and 'a :> IMeasured<'m>
     > = Nil | View of 'a * Lazy<FingerTree<'m, 'a>>
 
 /// A split points to an element in the finger tree and also provides the two finger trees around that element.
 type Split<'m, 'a
     when 'm :> IMonoid<'m>
         and 'm : (new : unit -> 'm)
-        and 'a :> IMeasured<'m, 'a>
+        and 'a :> IMeasured<'m>
     > = Split of FingerTree<'m, 'a> * 'a * FingerTree<'m, 'a>
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
@@ -156,7 +156,7 @@ module FingerTree =
     let rec viewl<'m, 'a
         when 'm :> IMonoid<'m>
             and 'm : (new : unit -> 'm)
-            and 'a :> IMeasured<'m, 'a>
+            and 'a :> IMeasured<'m>
         > : FingerTree<'m, 'a> -> View<'m, 'a> = function
         | Empty -> Nil
         | Single x -> View(x, lazyval Empty)
@@ -181,7 +181,7 @@ module FingerTree =
     let rec viewr<'m, 'a
         when 'm :> IMonoid<'m>
             and 'm : (new : unit -> 'm)
-            and 'a :> IMeasured<'m, 'a>
+            and 'a :> IMeasured<'m>
         > : FingerTree<'m, 'a> -> View<'m, 'a> = function
         | Empty -> Nil
         | Single x -> View(x, lazyval Empty)
@@ -206,7 +206,7 @@ module FingerTree =
     let rec append<'m, 'a
         when 'm :> IMonoid<'m>
             and 'm : (new : unit -> 'm)
-            and 'a :> IMeasured<'m, 'a>
+            and 'a :> IMeasured<'m>
         > (z:'a) : FingerTree<'m, 'a> -> FingerTree<'m, 'a> = function
         | Empty -> Single z
         | Single y ->
@@ -224,7 +224,7 @@ module FingerTree =
     let rec prepend<'m, 'a
         when 'm :> IMonoid<'m>
             and 'm : (new : unit -> 'm)
-            and 'a :> IMeasured<'m, 'a>
+            and 'a :> IMeasured<'m>
         > (a:'a) : FingerTree<'m, 'a> -> FingerTree<'m, 'a> = function
         | Empty -> Single a
         | Single b ->
@@ -243,7 +243,7 @@ module FingerTree =
         concatWithMiddle<'m, 'a
             when 'm :> IMonoid<'m>
                 and 'm : (new : unit -> 'm)
-                and 'a :> IMeasured<'m, 'a>
+                and 'a :> IMeasured<'m>
         > : FingerTree<'m, 'a> * 'a list * FingerTree<'m, 'a> -> FingerTree<'m, 'a> = function
         | Empty, [], only
         | only, [], Empty -> only
@@ -314,7 +314,7 @@ module FingerTree =
     let rec split<'m, 'a
         when 'm :> IMonoid<'m>
             and 'm : (new : unit -> 'm)
-            and 'a :> IMeasured<'m, 'a>
+            and 'a :> IMeasured<'m>
         > (pred:'m -> bool) (start:'m) : FingerTree<'m, 'a> -> Split<'m, 'a> = function
         | Empty ->
             invalidArg "" Messages.treeIsEmpty
