@@ -104,6 +104,22 @@ type DebugMachine() as this =
             override __.ToString () = sprintf "replace .[%i] <- %A" where what
         }
 
+    let remove where _ =
+        { new OpType() with
+            override __.DoRun model =
+                model.RemoveAt where
+
+            override __.Pre model =
+                where >= 0 && where < model.Count
+
+            override me.DoCheck(sut, model) =
+                sut := RandomAccess.removeIndex !sut where
+                !sut |> RandomAccess.sequenceEqual model
+                |@ me.ToString()
+
+            override __.ToString () = sprintf "remove .[%i]" where
+        }
+
     let tail =
         { new OpType() with
             override __.DoRun model =
@@ -204,9 +220,10 @@ type DebugMachine() as this =
             return cmd num
         }
         let withPositionAsPercentAndElement = gen {
+            let! cmd = Gen.elements [replace; remove]
             let! percent = Gen.choose(0, 101)
             let! elm = rndNum
-            return replace percent elm
+            return cmd percent elm
         }
         let withList = gen {
             let! cmd = Gen.elements [concatLeft; concatRight]
