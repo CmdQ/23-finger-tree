@@ -166,13 +166,13 @@ module FingerTree =
                 | Nil ->
                     suffix |> Digit.promote
                 | View (node, lazyRest) ->
-                    let v = (fmeasure node).Add(fmeasure lazyRest.Value).Add(fmeasure suffix)
+                    let v = (fmeasure node).Plus(fmeasure lazyRest.Value).Plus(fmeasure suffix)
                     Deep(v, node |> Digit.ofNode, lazyRest, suffix)
             )
             View(x, rest)
         | Deep(_, Digit.SplitFirst(x, shorter), deeper, suffix) ->
             let lazyRest = lazy (
-                let v = (fmeasure shorter).Add(fmeasure deeper.Value).Add(fmeasure suffix)
+                let v = (fmeasure shorter).Plus(fmeasure deeper.Value).Plus(fmeasure suffix)
                 Deep(v, shorter, deeper, suffix)
             )
             View(x, lazyRest)
@@ -191,13 +191,13 @@ module FingerTree =
                 | Nil ->
                     prefix |> Digit.promote
                 | View (node, lazyRest) ->
-                    let v = (fmeasure prefix).Add(fmeasure lazyRest.Value).Add(fmeasure node)
+                    let v = (fmeasure prefix).Plus(fmeasure lazyRest.Value).Plus(fmeasure node)
                     Deep(v, prefix, lazyRest, node |> Digit.ofNode)
             )
             View(x, rest)
         | Deep(_, prefix, deeper, Digit.SplitLast(shorter, x)) ->
             let lazyRest = lazy (
-                let v = (fmeasure prefix).Add(fmeasure deeper.Value).Add(fmeasure shorter)
+                let v = (fmeasure prefix).Plus(fmeasure deeper.Value).Plus(fmeasure shorter)
                 Deep(v, prefix, deeper, shorter)
             )
             View(x, lazyRest)
@@ -213,12 +213,12 @@ module FingerTree =
             Deep(mconcat [y; z], One y, lazyval Empty, One z)
         | Deep(total, prefix, Lazy deeper, Four(v, w, x, y)) ->
             // Force evaluation here, because the dept has already been paid for.
-            Deep(total.Add (fmeasure z),
+            Deep(total.Plus (fmeasure z),
                 prefix,
                 lazyval(append (Node.ofList [v; w; x]) deeper),
                 Two(y, z))
         | Deep(total, prefix, deeper, suffix) ->
-            Deep(total.Add (fmeasure z), prefix, deeper, suffix |> Digit.append z)
+            Deep(total.Plus (fmeasure z), prefix, deeper, suffix |> Digit.append z)
 
     /// Prepend an element to the left of a tree.
     let rec prepend<'m, 'a
@@ -231,12 +231,12 @@ module FingerTree =
             Deep(mconcat [a; b], One a, lazyval Empty, One b)
         | Deep(total, Four(b, c, d, e), Lazy deeper, suffix) ->
             // Force evaluation here, because the dept has already been paid for.
-            Deep((fmeasure a).Add total,
+            Deep((fmeasure a).Plus total,
                 Two(a, b),
                 lazyval(prepend (Node.ofList [c; d; e]) deeper),
                 suffix)
         | Deep(total, prefix, deeper, suffix) ->
-            Deep((fmeasure a).Add total, prefix |> Digit.prepend a, deeper, suffix)
+            Deep((fmeasure a).Plus total, prefix |> Digit.prepend a, deeper, suffix)
 
     /// Concatenate two trees while putting a list of elements in the middle.
     let rec
@@ -260,9 +260,9 @@ module FingerTree =
             )
             let v =
                 if List.isEmpty middle then
-                    leftTotal.Add rightTotal
+                    leftTotal.Plus rightTotal
                 else
-                    leftTotal.Add(mconcat middle).Add rightTotal
+                    leftTotal.Plus(mconcat middle).Plus rightTotal
             Deep(v, leftPrefix, deeper, rightSuffix)
 
     /// Concatenate two finger trees.
@@ -273,7 +273,7 @@ module FingerTree =
         | [] -> invalidIndex Messages.splitPointNotFound
         | (x::xs) as list ->
             assert(list.Length <= CmdQ.FingerTree.Digit.max)
-            let start = start.Add(fmeasure x)
+            let start = start.Plus(fmeasure x)
             if pred start then
                 [], list
             else
@@ -307,7 +307,7 @@ module FingerTree =
             if prefix.Length > CmdQ.FingerTree.Digit.max || suffix.Length > CmdQ.FingerTree.Digit.max then
                 invalidOp Messages.digitsCannotBeLongerThanFour
             else
-                let v = (mconcat prefix).Add(fmeasure deeper).Add(mconcat suffix)
+                let v = (mconcat prefix).Plus(fmeasure deeper).Plus(mconcat suffix)
                 Deep(v, Digit.ofList prefix, lazyval deeper, Digit.ofList suffix)
 
     /// Split a finger tree where a predicate becomes true.
@@ -318,11 +318,11 @@ module FingerTree =
         > (pred:'m -> bool) (start:'m) : FingerTree<'m, 'a> -> Split<'m, 'a> = function
         | Empty ->
             invalidArg "" Messages.treeIsEmpty
-        | Single x when start.Add(fmeasure x) |> pred ->
+        | Single x when start.Plus(fmeasure x) |> pred ->
             Split(Empty, x, Empty)
-        | Deep(total, prefix, deeper, suffix) when start.Add total |> pred ->
-            let startPref = start.Add(fmeasure prefix)
-            let startPrefDeeper = startPref.Add(fmeasure deeper.Value)
+        | Deep(total, prefix, deeper, suffix) when start.Plus total |> pred ->
+            let startPref = start.Plus(fmeasure prefix)
+            let startPrefDeeper = startPref.Plus(fmeasure deeper.Value)
 
             let prefix = Digit.toList prefix
             let suffix = Digit.toList suffix
@@ -332,7 +332,7 @@ module FingerTree =
                 Split(chunkToTree before, x, deep after deeper.Value suffix)
             elif startPrefDeeper |> pred then
                 let (Split(before, node, after)) = split pred startPref deeper.Value
-                let beforeNode, x::afterNode = splitList pred <| startPref.Add(fmeasure before) <| Node.toList node
+                let beforeNode, x::afterNode = splitList pred <| startPref.Plus(fmeasure before) <| Node.toList node
                 Split(deep prefix before beforeNode, x, deep afterNode after suffix)
             else
                 let before, x::after = splitList pred startPrefDeeper suffix

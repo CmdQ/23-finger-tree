@@ -8,7 +8,7 @@ type Singleton<'a when 'a : (new : unit -> 'a)> private() =
 /// A type that provides a zero element and an associative add method.
 type IMonoid<'m> =
     abstract Zero:'m
-    abstract Add:'m -> 'm
+    abstract Plus:'m -> 'm
 
 /// A type that provides access to its measure.
 type IMeasured<'m, 'a when 'm :> IMonoid<'m>> =
@@ -18,7 +18,7 @@ type IMeasured<'m, 'a when 'm :> IMonoid<'m>> =
 let fmeasure m = (m :> IMeasured<_, _>).Measure
 
 /// Associatively combine the measures of all elements in a list.
-let mconcat monoids = monoids |> (List.map fmeasure >> List.reduce (fun a b -> a.Add b))
+let mconcat monoids = monoids |> (List.map fmeasure >> List.reduce (fun a b -> a.Plus b))
 
 module RandomAccess =
     [<Sealed>]
@@ -29,7 +29,7 @@ module RandomAccess =
 
         interface IMonoid<Size> with
             member __.Zero = Size()
-            member __.Add rhs = Size(value + rhs.Value)
+            member __.Plus rhs = Size(value + rhs.Value)
 
         override __.ToString () = sprintf "Count = %i" value
 
