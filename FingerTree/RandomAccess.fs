@@ -110,3 +110,15 @@ module RandomAccess =
             let (Split(left, _, right)) = tree |> FingerTree.split (fun x -> x.Value > index) (Size())
             FingerTree.concat left right
         ) index tree
+
+    let rec depthCheck<'a
+        when 'a :> IMeasured<Size, 'a>
+        > : FingerTree<Size, 'a> -> int = function
+        | Empty -> 0
+        | Single _ -> 1
+        | Deep(total, prefix, Lazy deeper, suffix) ->
+            let measured = (fmeasure prefix).Value + (fmeasure deeper).Value + (fmeasure suffix).Value
+            if total.Value <> measured then
+                System.ApplicationException(sprintf "The measures are not consistent. %i is cached but %i was measured." total.Value measured) |> raise
+            else
+                depthCheck deeper + 1
