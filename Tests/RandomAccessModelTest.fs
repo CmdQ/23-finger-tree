@@ -4,6 +4,7 @@ open CmdQ.FingerTree
 open Fuchu
 open FsCheck
 open FsCheck.Experimental
+open System.Diagnostics
 
 type TestType = int16
 type ModelType = ResizeArray<TestType>
@@ -31,7 +32,9 @@ module RandomAccess =
         Seq.zip (RandomAccess.toSeq tree) seq
         |> Seq.forall (fun ab -> ab ||> (=))
 
-let concatDequeSpec =
+type DebugMachine() as this =
+    inherit Machine<SutType, ModelType>()
+
     let check sut model op changer delta =
         sut := !sut |> changer delta
         !sut |> RandomAccess.sequenceEqual model |@ sprintf "%s: %A" op delta
@@ -133,6 +136,43 @@ let concatDequeSpec =
             override __.ToString () = "spine"
         }
 
+    let collectAddEnd (f:_ -> #seq<TestType>) what =
+        { new OpType() with
+            override __.DoRun model =
+                let transformed = what |> Seq.collect f
+                model.AddRange transformed
+
+            override __.DoCheck(sut, model) =
+                let add = what |> RandomAccess.collect (f >> RandomAccess.ofSeq)
+                sut := RandomAccess.concat !sut add
+                !sut |> RandomAccess.sequenceEqual model
+                |> Prop.trivial (Seq.isEmpty what)
+
+            override __.ToString() = sprintf "collectAddEnd %A" what
+        }
+
+    let collectReplace (f:_ -> #seq<TestType>) what =
+        { new OpType() with
+            override __.DoRun model =
+                let transformed = what |> Seq.collect f
+                model.Clear()
+                model.AddRange transformed
+
+            override __.DoCheck(sut, model) =
+                sut := what |> RandomAccess.collect (f >> RandomAccess.ofSeq)
+                !sut |> RandomAccess.sequenceEqual model
+                |> Prop.trivial (Seq.isEmpty what)
+
+            override __.ToString () = sprintf "collectReplace %A" what
+        }
+
+    let noop =
+        { new OpType() with
+            override __.DoRun _ = ()
+            override __.DoCheck(_, _) = true |> Prop.trivial true
+            override __.ToString () = "noop"
+        }
+
     let create (initial) =
         { new Setup<SutType, ModelType>() with
             override __.Actual () = ref (RandomAccess.ofArray initial)
@@ -142,35 +182,54 @@ let concatDequeSpec =
 
     let rndNum = Arb.from<TestType> |> Arb.toGen
 
-    { new Machine<SutType, ModelType>() with
-        override __.Setup =
-            rndNum
-            |> Gen.arrayOf
-            |> Gen.map create
-            |> Arb.fromGen
+    let mutable debug = false
 
-        override __.Next _ =
-            let withElement = gen {
-                let! cmd = Gen.elements [append; prepend]
-                let! num = rndNum
-                return cmd num
-            }
-            let withPositionAsPercentAndElement = gen {
-                let! percent = Gen.choose(0, 101)
-                let! elm = rndNum
-                return replace percent elm
-            }
-            let withList = gen {
-                let! cmd = Gen.elements [concatLeft; concatRight]
+    do
+        this.InDebug()
+
+    [<Conditional("DEBUG")>]
+    member __.InDebug() =
+        debug <- true
+
+    override __.Setup =
+        rndNum
+        |> Gen.arrayOf
+        |> Gen.map create
+        |> Arb.fromGen
+
+    override __.Next _ =
+        let withElement = gen {
+            let! cmd = Gen.elements [append; prepend]
+            let! num = rndNum
+            return cmd num
+        }
+        let withPositionAsPercentAndElement = gen {
+            let! percent = Gen.choose(0, 101)
+            let! elm = rndNum
+            return replace percent elm
+        }
+        let withList = gen {
+            let! cmd = Gen.elements [concatLeft; concatRight]
+            let! list = Gen.listOf rndNum
+            return cmd list
+        }
+        let withUnit = gen {
+            return! Gen.elements [tail; spine]
+        }
+        let forCollect = gen {
+            if debug then
+                // Otherwise we get stack overflows.
+                return noop
+            else
+                let! cmd = Gen.elements [collectAddEnd; collectReplace]
+                let! f = Arb.from<TestType -> TestType list> |> Arb.toGen
                 let! list = Gen.listOf rndNum
-                return cmd list
-            }
-            let withUnit = gen {
-                return! Gen.elements [tail; spine]
-            }
-            Gen.frequency [3, withUnit; 3, withElement; 3, withPositionAsPercentAndElement; 1, withList]
-            |> Gen.map (fun g -> upcast g)
-    }
+                return cmd f list
+        }
+        Gen.frequency [3, withUnit; 3, withElement; 3, withPositionAsPercentAndElement; 2, withList; 1, forCollect]
+        |> Gen.map (fun g -> upcast g)
+
+let concatDequeSpec = DebugMachine()
 
 [<Tests>]
 let modelTests =
