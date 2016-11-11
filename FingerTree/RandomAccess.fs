@@ -128,6 +128,20 @@ module RandomAccess =
             FingerTree.concat left right
         ) index tree
 
+    /// Insert a new element at a given position.
+    let insertAt index value tree =
+        if index = 0 then
+            tree |> prepend value
+        else
+            let len = tree |> length 
+            if index > len then
+                outsideError()
+            if index = len then
+                tree |> append value
+            else
+                let (Split(left, Value current, right)) = tree |> FingerTree.split (fun x -> x.Value > index) (Size())
+                concat (left |> append value) (prepend current right)
+                
     /// Return the depth of a tree while also checking that all measures are correct.
     let rec depthCheck<'a
         when 'a :> IMeasured<Size>

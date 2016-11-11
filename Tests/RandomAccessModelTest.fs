@@ -101,7 +101,7 @@ type DebugMachine() as this =
                 !sut |> RandomAccess.sequenceEqual model
                 |> Prop.trivial (what = before)
 
-            override __.ToString () = sprintf "replace .[%i] <- %A" where what
+            override __.ToString () = sprintf "replace .[%i] := %A" where what
         }
 
     let remove where _ =
@@ -118,6 +118,22 @@ type DebugMachine() as this =
                 |@ me.ToString()
 
             override __.ToString () = sprintf "remove .[%i]" where
+        }
+
+    let insert where what =
+        { new OpType() with
+            override __.DoRun model =
+                model.Insert(where, what)
+
+            override __.Pre model =
+                where >= 0 && where <= model.Count
+
+            override me.DoCheck(sut, model) =
+                sut := RandomAccess.insertAt where what !sut
+                !sut |> RandomAccess.sequenceEqual model
+                |@ me.ToString()
+
+            override __.ToString () = sprintf "insert .[%i] <- %A" where what
         }
 
     let tail =
@@ -220,7 +236,7 @@ type DebugMachine() as this =
             return cmd num
         }
         let withPositionAsPercentAndElement = gen {
-            let! cmd = Gen.elements [replace; remove]
+            let! cmd = Gen.elements [replace; remove; insert]
             let! percent = Gen.choose(0, 101)
             let! elm = rndNum
             return cmd percent elm
