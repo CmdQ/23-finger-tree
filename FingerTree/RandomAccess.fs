@@ -104,10 +104,12 @@ module RandomAccess =
         else
             whenOk(index, tree)
 
+    let predicateSwitches index (x:Size) = x.Value > index
+
     /// Return the element at a given position.
     let item index tree =
         indexChecked outsideError (fun (index, tree) ->
-            let (Split(_, Value elm, _)) = tree |> FingerTree.split (fun x -> x.Value > index) (Size())
+            let (Split(_, Value elm, _)) = tree |> FingerTree.split (predicateSwitches index) (Size())
             elm
         ) index tree
 
@@ -117,14 +119,14 @@ module RandomAccess =
     /// Return a new tree where a given position is replaced with a new value.
     let set tree index value : Tree<_> =
         indexChecked outsideError (fun (index, tree) ->
-            let (Split(left, _, right)) = tree |> FingerTree.split (fun x -> x.Value > index) (Size())
+            let (Split(left, _, right)) = tree |> FingerTree.split (predicateSwitches index) (Size())
             FingerTree.prepend (Value value) right |> FingerTree.concat left
         ) index tree
 
     /// Remove an element at a given position from the tree.
     let removeIndex index tree : Tree<_> =
         indexChecked outsideError (fun (index, tree) ->
-            let (Split(left, _, right)) = tree |> FingerTree.split (fun x -> x.Value > index) (Size())
+            let (Split(left, _, right)) = tree |> FingerTree.split (predicateSwitches index) (Size())
             FingerTree.concat left right
         ) index tree
 
@@ -139,7 +141,7 @@ module RandomAccess =
             if index = len then
                 tree |> append value
             else
-                let (Split(left, Value current, right)) = tree |> FingerTree.split (fun x -> x.Value > index) (Size())
+                let (Split(left, Value current, right)) = tree |> FingerTree.split (predicateSwitches index) (Size())
                 concat (left |> append value) (prepend current right)
                 
     /// Return the depth of a tree while also checking that all measures are correct.
