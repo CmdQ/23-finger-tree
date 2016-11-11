@@ -210,16 +210,15 @@ module FingerTree =
         > (z:'a) : FingerTree<'m, 'a> -> FingerTree<'m, 'a> = function
         | Empty -> Single z
         | Single y ->
-            let annot = mconcat [y; z]
-            Deep(annot, One y, lazyval Empty, One z)
-        | Deep(annot, prefix, Lazy deeper, Four(v, w, x, y)) ->
+            Deep(mconcat [y; z], One y, lazyval Empty, One z)
+        | Deep(total, prefix, Lazy deeper, Four(v, w, x, y)) ->
             // Force evaluation here, because the dept has already been paid for.
-            Deep(annot.Add (fmeasure z),
+            Deep(total.Add (fmeasure z),
                 prefix,
                 lazyval(append (Node.ofList [v; w; x]) deeper),
                 Two(y, z))
-        | Deep(v, prefix, deeper, suffix) ->
-            Deep(v.Add (fmeasure z), prefix, deeper, suffix |> Digit.append z)
+        | Deep(total, prefix, deeper, suffix) ->
+            Deep(total.Add (fmeasure z), prefix, deeper, suffix |> Digit.append z)
 
     /// Prepend an element to the left of a tree.
     let rec prepend<'m, 'a
@@ -229,16 +228,15 @@ module FingerTree =
         > (a:'a) : FingerTree<'m, 'a> -> FingerTree<'m, 'a> = function
         | Empty -> Single a
         | Single b ->
-            let annot = mconcat [a; b]
-            Deep(annot, One a, lazyval Empty, One b)
-        | Deep(annot, Four(b, c, d, e), Lazy deeper, suffix) ->
+            Deep(mconcat [a; b], One a, lazyval Empty, One b)
+        | Deep(total, Four(b, c, d, e), Lazy deeper, suffix) ->
             // Force evaluation here, because the dept has already been paid for.
-            Deep((fmeasure a).Add annot,
+            Deep((fmeasure a).Add total,
                 Two(a, b),
                 lazyval(prepend (Node.ofList [c; d; e]) deeper),
                 suffix)
-        | Deep(annot, prefix, deeper, suffix) ->
-            Deep((fmeasure a).Add annot, prefix |> Digit.prepend a, deeper, suffix)
+        | Deep(total, prefix, deeper, suffix) ->
+            Deep((fmeasure a).Add total, prefix |> Digit.prepend a, deeper, suffix)
 
     /// Concatenate two trees while putting a list of elements in the middle.
     let rec

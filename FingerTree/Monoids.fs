@@ -7,12 +7,12 @@ type Singleton<'a when 'a : (new : unit -> 'a)> private() =
 
 /// A type that provides a zero element and an associative add method.
 type IMonoid<'m> =
-    abstract member Zero:'m
-    abstract member Add:'m -> 'm
+    abstract Zero:'m
+    abstract Add:'m -> 'm
 
 /// A type that provides access to its measure.
 type IMeasured<'m, 'a when 'm :> IMonoid<'m>> =
-    abstract member Measure:'m
+    abstract Measure:'m
 
 /// Return the measure of a measured type.
 let fmeasure m = (m :> IMeasured<_, _>).Measure
