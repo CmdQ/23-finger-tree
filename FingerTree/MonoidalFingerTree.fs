@@ -37,7 +37,7 @@ module Node =
         | [_] -> invalidOp "No enough elements."
         | [x; y] -> [Node2(mconcat list, x, y)]
         | [x; y; z] -> [Node3(mconcat list, x, y, z)]
-        | x::y::rest -> Node2(mconcat list, x, y)::(toNodeList rest)
+        | x::y::rest -> Node2(mconcat [x; y], x, y)::(toNodeList rest)
 
 /// A digit holds at least 1 and up to 4 elements.
 type Digit<'m, 'a
@@ -78,7 +78,6 @@ type FingerTree<'m, 'a
         member me.Measure =
             match me with
             | Empty ->
-                //fmeasure Unchecked.defaultof<'a>
                 me.Monoid
             | Single x -> fmeasure x
             | Deep(v, _, _, _) -> v
