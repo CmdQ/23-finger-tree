@@ -64,9 +64,9 @@ type Digit<'m, 'a
 [<NoComparison>]
 [<NoEquality>]
 type FingerTree<'m, 'a
-    when 'm :> IMonoid<'m>
+        when 'a :> IMeasured<'m>
+        and 'm :> IMonoid<'m>
         and 'm : (new : unit -> 'm)
-        and 'a :> IMeasured<'m>
     > =
     | Empty
     | Single of 'a
@@ -136,16 +136,16 @@ module Digit =
 
 /// A View is either empty or points to an element in the finger tree and its position.
 type View<'m, 'a
-    when 'm :> IMonoid<'m>
+        when 'a :> IMeasured<'m>
+        and 'm :> IMonoid<'m>
         and 'm : (new : unit -> 'm)
-        and 'a :> IMeasured<'m>
     > = Nil | View of 'a * Lazy<FingerTree<'m, 'a>>
 
 /// A split points to an element in the finger tree and also provides the two finger trees around that element.
 type Split<'m, 'a
-    when 'm :> IMonoid<'m>
+        when 'a :> IMeasured<'m>
+        and 'm :> IMonoid<'m>
         and 'm : (new : unit -> 'm)
-        and 'a :> IMeasured<'m>
     > = Split of FingerTree<'m, 'a> * 'a * FingerTree<'m, 'a>
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
@@ -154,9 +154,8 @@ module FingerTree =
 
     /// Return both the left-most element and the remaining tree (lazily).
     let rec viewl<'m, 'a
-        when 'm :> IMonoid<'m>
+            when 'a :> IMeasured<'m>
             and 'm : (new : unit -> 'm)
-            and 'a :> IMeasured<'m>
         > : FingerTree<'m, 'a> -> View<'m, 'a> = function
         | Empty -> Nil
         | Single x -> View(x, lazyval Empty)
@@ -179,9 +178,8 @@ module FingerTree =
 
     /// Return both the right-most element and the remaining tree (lazily).
     let rec viewr<'m, 'a
-        when 'm :> IMonoid<'m>
+            when 'a :> IMeasured<'m>
             and 'm : (new : unit -> 'm)
-            and 'a :> IMeasured<'m>
         > : FingerTree<'m, 'a> -> View<'m, 'a> = function
         | Empty -> Nil
         | Single x -> View(x, lazyval Empty)
@@ -204,9 +202,8 @@ module FingerTree =
 
     /// Append an element to the right of a tree.
     let rec append<'m, 'a
-        when 'm :> IMonoid<'m>
+            when 'a :> IMeasured<'m>
             and 'm : (new : unit -> 'm)
-            and 'a :> IMeasured<'m>
         > (z:'a) : FingerTree<'m, 'a> -> FingerTree<'m, 'a> = function
         | Empty -> Single z
         | Single y ->
@@ -222,9 +219,8 @@ module FingerTree =
 
     /// Prepend an element to the left of a tree.
     let rec prepend<'m, 'a
-        when 'm :> IMonoid<'m>
+            when 'a :> IMeasured<'m>
             and 'm : (new : unit -> 'm)
-            and 'a :> IMeasured<'m>
         > (a:'a) : FingerTree<'m, 'a> -> FingerTree<'m, 'a> = function
         | Empty -> Single a
         | Single b ->
@@ -241,9 +237,8 @@ module FingerTree =
     /// Concatenate two trees while putting a list of elements in the middle.
     let rec
         concatWithMiddle<'m, 'a
-            when 'm :> IMonoid<'m>
+                when 'a :> IMeasured<'m>
                 and 'm : (new : unit -> 'm)
-                and 'a :> IMeasured<'m>
         > : FingerTree<'m, 'a> * 'a list * FingerTree<'m, 'a> -> FingerTree<'m, 'a> = function
         | Empty, [], only
         | only, [], Empty -> only
@@ -312,9 +307,8 @@ module FingerTree =
 
     /// Split a finger tree where a predicate becomes true.
     let rec split<'m, 'a
-        when 'm :> IMonoid<'m>
+            when 'a :> IMeasured<'m>
             and 'm : (new : unit -> 'm)
-            and 'a :> IMeasured<'m>
         > (pred:'m -> bool) (start:'m) : FingerTree<'m, 'a> -> Split<'m, 'a> = function
         | Empty ->
             invalidArg "" Messages.treeIsEmpty
