@@ -91,6 +91,11 @@ module Digit =
         | [a; b; c; d] -> Four(a, b, c, d)
         | _ -> invalidOp Messages.onlyList1to4Accepted
 
+    /// Directly convert a node to a digit.
+    let ofNode = function
+        | Node2(_, a, b) -> Two(a, b)
+        | Node3(_, a, b, c) -> Three(a, b, c)
+
     /// Convert a digit to a list.
     let toList (digit:Digit<_, _>) = digit.ToList()
 
@@ -155,15 +160,14 @@ module FingerTree =
         > : FingerTree<'m, 'a> -> View<'m, 'a> = function
         | Empty -> Nil
         | Single x -> View(x, lazyval Empty)
-        | Deep(_, One x, deeper, suffix) as tree ->
+        | Deep(_, One x, deeper, suffix) ->
             let rest = lazy (
                 match viewl deeper.Value with
                 | Nil ->
                     suffix |> Digit.promote
                 | View (node, lazyRest) ->
-                    let prefix = node |> Node.toList |> Digit.ofList
-                    let v = (fmeasure prefix).Add(fmeasure lazyRest.Value).Add(fmeasure suffix)
-                    Deep(v, prefix, lazyRest, suffix)
+                    let v = (fmeasure node).Add(fmeasure lazyRest.Value).Add(fmeasure suffix)
+                    Deep(v, node |> Digit.ofNode, lazyRest, suffix)
             )
             View(x, rest)
         | Deep(_, Digit.SplitFirst(x, shorter), deeper, suffix) ->
@@ -187,9 +191,8 @@ module FingerTree =
                 | Nil ->
                     prefix |> Digit.promote
                 | View (node, lazyRest) ->
-                    let suffix = node |> Node.toList |> Digit.ofList
-                    let v = (fmeasure prefix).Add(fmeasure lazyRest.Value).Add(fmeasure suffix)
-                    Deep(v, prefix, lazyRest, suffix)
+                    let v = (fmeasure prefix).Add(fmeasure lazyRest.Value).Add(fmeasure node)
+                    Deep(v, prefix, lazyRest, node |> Digit.ofNode)
             )
             View(x, rest)
         | Deep(_, prefix, deeper, Digit.SplitLast(shorter, x)) ->
