@@ -41,9 +41,8 @@ module RandomAccess =
     let toList tree =
         let rec toList acc (tree:Tree<_>) =
             match FingerTree.viewr tree with
-            | View(Value v, Lazy rest) ->
-                rest |> toList (v::acc)
             | Nil -> acc
+            | View(Value head, Lazy tail) -> toList (head::acc) tail
         toList [] tree
 
     /// Convert a tree to a sequence, i.e. enumerate all elements left to right.
@@ -96,7 +95,7 @@ module RandomAccess =
     /// Apply a mapping to a sequence and merge all resulting finger trees into one.
     let collect mapping = Seq.map mapping >> Seq.fold concat Empty
 
-    let outsideError () = invalidIndex Messages.indexOutOfRange
+    let inline outsideError () = invalidIndex Messages.indexOutOfRange
 
     let indexChecked whenOutside whenOk index (tree:Tree<_>) =
         let total = fmeasure tree
@@ -105,17 +104,14 @@ module RandomAccess =
         else
             whenOk(index, tree)
 
-    let tryItem index tree =
-        indexChecked (fun () -> None) (fun (index, tree) ->
+    /// Return the element at a given position.
+    let item index tree =
+        indexChecked outsideError (fun (index, tree) ->
             let (Split(_, Value elm, _)) = tree |> FingerTree.split (fun x -> x.Value > index) (Size())
-            Some elm
+            elm
         ) index tree
 
-    let item index tree =
-        match tryItem index tree with
-        | Some elm -> elm
-        | _ -> outsideError()
-
+    /// Return the element at a given position.
     let get tree index = item index tree
 
     /// Return a new tree where a given position is replaced with a new value.
