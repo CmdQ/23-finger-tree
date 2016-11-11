@@ -15,7 +15,7 @@ type IMeasured<'m when 'm :> IMonoid<'m>> =
     abstract Measure:'m
 
 /// Return the measure of a measured type.
-let fmeasure m = (m :> IMeasured<_>).Measure
+let fmeasure (m:IMeasured<_>) = m.Measure
 
 /// Associatively combine the measures of all elements in a list.
 let mconcat monoids = monoids |> (List.map fmeasure >> List.reduce (fun a b -> a.Plus b))
