@@ -122,7 +122,7 @@ module RandomAccess =
         ) index tree
 
     /// Remove an element at a given position from the tree.
-    let removeIndex tree index : Tree<_> =
+    let removeIndex index tree : Tree<_> =
         indexChecked outsideError (fun (index, tree) ->
             let (Split(left, _, right)) = tree |> FingerTree.split (fun x -> x.Value > index) (Size())
             FingerTree.concat left right

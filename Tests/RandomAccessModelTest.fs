@@ -113,7 +113,7 @@ type DebugMachine() as this =
                 where >= 0 && where < model.Count
 
             override me.DoCheck(sut, model) =
-                sut := RandomAccess.removeIndex !sut where
+                sut := RandomAccess.removeIndex where !sut
                 !sut |> RandomAccess.sequenceEqual model
                 |@ me.ToString()
 
