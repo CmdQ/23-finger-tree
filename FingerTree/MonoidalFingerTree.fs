@@ -250,14 +250,19 @@ module FingerTree =
         | Single left, rest, right -> concatWithMiddle(Empty, rest, right) |> prepend left
         | left, List.Snoc(rest, right), Empty
         | left, rest, Single right -> concatWithMiddle(left, rest, Empty) |> append right
-        | Deep(leftAnnot, leftPrefix, leftDeeper, leftSuffix), middle, Deep(rightAnnot, rightPrefix, rightDeeper, rightSuffix) ->
+        | Deep(leftTotal, leftPrefix, leftDeeper, leftSuffix), middle, Deep(rightTotal, rightPrefix, rightDeeper, rightSuffix) ->
             let deeper = lazy (
-                let leftList = leftSuffix |> Digit.toList
-                let rightList = rightPrefix |> Digit.toList
-                let middle' = List.concat [leftList; middle; rightList] |> Node.toNodeList
-                concatWithMiddle(leftDeeper.Value, middle', rightDeeper.Value)
+                let left = leftSuffix |> Digit.toList
+                let right = rightPrefix |> Digit.toList
+                let middle = List.concat [left; middle; right] |> Node.toNodeList
+                concatWithMiddle(leftDeeper.Value, middle, rightDeeper.Value)
             )
-            Deep(leftAnnot.Add rightAnnot, leftPrefix, deeper, rightSuffix)
+            let v =
+                if List.isEmpty middle then
+                    leftTotal.Add rightTotal
+                else
+                    leftTotal.Add(mconcat middle).Add rightTotal
+            Deep(v, leftPrefix, deeper, rightSuffix)
 
     /// Concatenate two finger trees.
     let concat left right = concatWithMiddle(left, [], right)
