@@ -2,9 +2,10 @@
 
 #nowarn "25"
 
-open System
 open CmdQ.FingerTree.Error
 open CmdQ.FingerTree.Monoids
+open System
+open System.Diagnostics
 
 /// A 2-3-Node can hold either 2 or 3 elements.
 type Node<'m, 'a when 'm :> IMonoid<'m>> =
@@ -63,6 +64,7 @@ type Digit<'m, 'a
 /// A finger tree is either empty, holds a single elements or gets recursive with a prefix and a suffix of digits.
 [<NoComparison>]
 [<NoEquality>]
+[<DebuggerDisplay("{DebuggerDisplay,nq}", Type = "{TypeName}")>]
 type FingerTree<'m, 'a
         when 'a :> IMeasured<'m>
         and 'm :> IMonoid<'m>
@@ -81,6 +83,22 @@ type FingerTree<'m, 'a
                 me.Monoid
             | Single x -> fmeasure x
             | Deep(v, _, _, _) -> v
+
+    static member private TypeName =
+        CmdQ.FingerTree.FingerTree<_>.TypeName
+
+    member private me.DebuggerDisplay =
+        match me with
+        | Deep(v, prefix, Lazy Empty, suffix) ->
+            sprintf "%s ( [%A] %A | %A )" CmdQ.FingerTree.FingerTree<_>.DeepName v (prefix.ToList()) (suffix.ToList())
+        | Deep(v, prefix, Lazy (Single _), suffix) ->
+            sprintf "%s ( [%A] %A | . | %A )" CmdQ.FingerTree.FingerTree<_>.DeepName v (prefix.ToList()) (suffix.ToList())
+        | Deep(v, prefix, deeper, suffix) ->
+            deeper.Force() |> ignore
+            sprintf "%s ( [%A] %A | … | %A )" CmdQ.FingerTree.FingerTree<_>.DeepName v (prefix.ToList()) (suffix.ToList())
+        | _ -> sprintf "%A" me
+
+    override me.ToString () = me.DebuggerDisplay
 
 module Digit =
     /// Convert a list of values to a digit.

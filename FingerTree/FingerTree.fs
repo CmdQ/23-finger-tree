@@ -1,6 +1,8 @@
 ﻿namespace CmdQ.FingerTree
 
 open Error
+open Microsoft.FSharp.Reflection
+open System.Diagnostics
 
 /// A 2-3-Node can hold either 2 or 3 elements.
 type Node<'a> =
@@ -28,15 +30,45 @@ type Digit<'a> =
     | Three of 'a * 'a * 'a
     | Four of 'a * 'a * 'a * 'a
 
+    /// Convert to a list.
+    member me.ToList () =
+        match me with
+        | One a -> [a]
+        | Two(a, b) -> [a; b]
+        | Three(a, b, c) -> [a; b; c]
+        | Four(a, b, c, d) -> [a; b; c; d]
+
 /// A finger tree is either empty, holds a single elements or gets recursive with a prefix and a suffix of digits.
 [<NoComparison>]
 [<NoEquality>]
+[<DebuggerDisplay("{DebuggerDisplay,nq}", Type = "{TypeName}")>]
 type FingerTree<'a> =
     | Empty
     | Single of 'a
     | Deep of Digit<'a> * Lazy<FingerTree<Node<'a>>> * Digit<'a>
 
-/// A digit holds at least 1 and up to 4 elements.
+    static member internal DeepName =
+        let deeptree = Deep(One(()), lazyval Empty, One(()))
+        let info, _ = FSharpValue.GetUnionFields(deeptree, deeptree.GetType())
+        info.Name
+
+    static member internal TypeName =
+        typeof<FingerTree<_>>.Name
+
+    member private me.DebuggerDisplay =
+        match me with
+        | Deep(prefix, Lazy Empty, suffix) ->
+            sprintf "%s ( %A | %A )" FingerTree<_>.DeepName (prefix.ToList()) (suffix.ToList())
+        | Deep(prefix, Lazy (Single _), suffix) ->
+            sprintf "%s ( %A | . | %A )" FingerTree<_>.DeepName (prefix.ToList()) (suffix.ToList())
+        | Deep(prefix, deeper, suffix) ->
+            deeper.Force() |> ignore
+            sprintf "%s ( %A | … | %A )" FingerTree<_>.DeepName (prefix.ToList()) (suffix.ToList())
+        | _ -> sprintf "%A" me
+
+    override me.ToString () = me.DebuggerDisplay
+
+/// Functions for querying and manipulating digits.
 module Digit =
     /// Maximum number of elements per digit.
     let max = 4
@@ -50,11 +82,7 @@ module Digit =
         | _ -> failwith Messages.onlyList1to4Accepted
 
     /// Convert a digit to a list.
-    let toList = function
-        | One a -> [a]
-        | Two(a, b) -> [a; b]
-        | Three(a, b, c) -> [a; b; c]
-        | Four(a, b, c, d) -> [a; b; c; d]
+    let toList (digit:Digit<_>) = digit.ToList()
 
     /// Append a value to the right side of a digit.
     let append x = function
