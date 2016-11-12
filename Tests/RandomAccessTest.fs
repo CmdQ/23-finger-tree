@@ -30,4 +30,16 @@ let properties =
                 let back = tree |> RandomAccess.toArray
                 let item = back |> Array.map (RandomAccess.get tree)
                 back = item
+
+        testProperty "Check first and last element after sub" <|
+            fun length start count ->
+                let length = abs length
+                let start = abs start
+                let count = abs count
+                let tree = Array.init length id |> RandomAccess.ofArray
+                (count > 0 && start + count <= length)
+                ==> lazy (
+                    let sub = RandomAccess.sub tree start count
+                    RandomAccess.get sub 0 = start && RandomAccess.get sub (count - 1) = count - 1 + start
+                )
 ]

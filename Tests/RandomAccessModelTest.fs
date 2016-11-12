@@ -198,6 +198,23 @@ type DebugMachine() as this =
             override __.ToString () = sprintf "collectReplace %A" what
         }
 
+    let replaceWithSub start count =
+        { new OpType() with
+            override __.Pre model =
+                start >= 0 && count > 0 && start + count <= model.Count
+
+            override __.DoRun model =
+                model.RemoveRange(0, start)
+                model.RemoveRange(count, model.Count - count)
+
+            override __.DoCheck(sut, model) =
+                sut := RandomAccess.sub !sut start count
+                !sut |> RandomAccess.sequenceEqual model
+                |> Prop.trivial (start = 0 && count = model.Count)
+
+            override __.ToString () = sprintf "replace with [%i->%i]" start count
+        }
+
     let noop =
         { new OpType() with
             override __.DoRun _ = ()
@@ -241,6 +258,11 @@ type DebugMachine() as this =
             let! elm = rndNum
             return cmd percent elm
         }
+        let withPositionAndCount = gen {
+            let! pos = Arb.from<int>.Generator
+            let! len = Arb.from<int>.Generator
+            return replaceWithSub pos len
+        }
         let withList = gen {
             let! cmd = Gen.elements [concatLeft; concatRight]
             let! list = Gen.listOf rndNum
@@ -259,7 +281,7 @@ type DebugMachine() as this =
                 let! list = Gen.listOf rndNum
                 return cmd f list
         }
-        Gen.frequency [3, withUnit; 3, withElement; 3, withPositionAsPercentAndElement; 2, withList; 1, forCollect]
+        Gen.frequency [3, withUnit; 3, withElement; 3, withPositionAsPercentAndElement; 2, withList; 2, withPositionAndCount; 1, forCollect]
         |> Gen.map (fun g -> upcast g)
 
 let concatDequeSpec = DebugMachine()

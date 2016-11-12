@@ -143,7 +143,25 @@ module RandomAccess =
             else
                 let (Split(left, Value current, right)) = tree |> FingerTree.split (predicateSwitches index) (Size())
                 concat (left |> append value) (prepend current right)
-                
+
+    /// Extract a number of elements starting at a given position.
+    let sub tree startIndex count =
+        let onlyN count tree =
+            if count = length tree then tree else
+            indexChecked outsideError (fun (index, tree) ->
+                let (Split(sub, _, _)) = tree |> FingerTree.split (predicateSwitches index) (Size())
+                sub
+            ) count tree
+        if startIndex = 0 then
+            onlyN count tree
+        else
+            let skipped =
+                indexChecked outsideError (fun (index, tree) ->
+                    let (Split(_, _, sub)) = tree |> FingerTree.split (predicateSwitches index) (Size())
+                    sub
+                ) (startIndex - 1) tree
+            skipped |> onlyN count
+
     /// Return the depth of a tree while also checking that all measures are correct.
     let rec depthCheck<'a
         when 'a :> IMeasured<Size>
