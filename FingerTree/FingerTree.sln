@@ -7,6 +7,8 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FingerTree", "FingerTree.fs
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Tests", "..\Tests\Tests.fsproj", "{868E9547-A079-44D6-82D9-AACD7B890335}"
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FingerTree.Interop", "FingerTree.Interop\FingerTree.Interop.fsproj", "{3BE05AD5-7576-4F4E-A0BF-2B9DE6C62B19}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{868E9547-A079-44D6-82D9-AACD7B890335}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{868E9547-A079-44D6-82D9-AACD7B890335}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{868E9547-A079-44D6-82D9-AACD7B890335}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3BE05AD5-7576-4F4E-A0BF-2B9DE6C62B19}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3BE05AD5-7576-4F4E-A0BF-2B9DE6C62B19}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3BE05AD5-7576-4F4E-A0BF-2B9DE6C62B19}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3BE05AD5-7576-4F4E-A0BF-2B9DE6C62B19}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

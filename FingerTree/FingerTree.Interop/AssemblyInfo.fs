@@ -1,4 +1,4 @@
-﻿namespace CmdQ.FingerTree.AssemblyInfo
+﻿namespace CmdQ.FingerTree.Interop.AssemblyInfo
 
 open System.Reflection
 open System.Runtime.CompilerServices
@@ -7,11 +7,11 @@ open System.Runtime.InteropServices
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[<assembly: AssemblyTitle("FingerTree")>]
+[<assembly: AssemblyTitle("FingerTree.Interop")>]
 [<assembly: AssemblyDescription("")>]
 [<assembly: AssemblyConfiguration("")>]
 [<assembly: AssemblyCompany("")>]
-[<assembly: AssemblyProduct("FingerTree")>]
+[<assembly: AssemblyProduct("FingerTree.Interop")>]
 [<assembly: AssemblyCopyright("Copyright ©  2016")>]
 [<assembly: AssemblyTrademark("")>]
 [<assembly: AssemblyCulture("")>]
@@ -22,7 +22,7 @@ open System.Runtime.InteropServices
 [<assembly: ComVisible(false)>]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[<assembly: Guid("1bb4380b-5d03-40db-a084-fe02b56cc9df")>]
+[<assembly: Guid("3be05ad5-7576-4f4e-a0bf-2b9de6c62b19")>]
 
 // Version information for an assembly consists of the following four values:
 // 
@@ -34,7 +34,7 @@ open System.Runtime.InteropServices
 // You can specify all the values or you can default the Build and Revision Numbers 
 // by using the '*' as shown below:
 // [<assembly: AssemblyVersion("1.0.*")>]
-[<assembly: AssemblyVersion("1.1.*")>]
+[<assembly: AssemblyVersion("1.0.0.0")>]
 [<assembly: AssemblyFileVersion("1.0.0.0")>]
 
 do
