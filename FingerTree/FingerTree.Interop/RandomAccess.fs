@@ -7,13 +7,13 @@ open System
 open System.Collections.Generic
 open System.Runtime.CompilerServices
 
-type RandomAccess<'T>(source:seq<'T>) =
+type ImmutableList<'T>(source:seq<'T>) =
     let mutable tree = source |> RandomAccess.ofSeq
 
-    new () = RandomAccess<'T>(Seq.empty:seq<'T>)
+    new () = ImmutableList<'T>(Seq.empty:seq<'T>)
 
-    new (source:RandomAccess<_>) as this =
-        RandomAccess()
+    new (source:ImmutableList<_>) as this =
+        ImmutableList()
         then
             this.Tree <- source.Tree
 
@@ -25,21 +25,15 @@ type RandomAccess<'T>(source:seq<'T>) =
 
     member __.Last = tree |> RandomAccess.last
 
-    member __.Tail () = RandomAccess(Tree = RandomAccess.tail tree)
+    member __.Tail () = ImmutableList(Tree = RandomAccess.tail tree)
 
-    member __.ButLast () = RandomAccess(Tree = RandomAccess.butLast tree)
+    member __.ButLast () = ImmutableList(Tree = RandomAccess.butLast tree)
 
-    member __.Concat (rhs:RandomAccess<_>) = tree <- RandomAccess.concat tree rhs.Tree
-
-    // interface IList<'T> with
+    // interface ICollection<'T> with
 
     member __.Count = tree |> RandomAccess.length
 
-    member __.Add item = tree <- RandomAccess.append item tree
-
-    member __.Clear () = tree <- RandomAccess.empty
-
-    member __.Contains item = failwith "Not implemented yet"
+    member __.IsReadOnly = true
 
     member me.CopyTo(array:'T [], arrayIndex) =
         if isNull array then
@@ -57,59 +51,102 @@ type RandomAccess<'T>(source:seq<'T>) =
                 assert(i = me.Count)
         loop 0 tree
 
+    abstract Item : index:int -> 'T with get, set
+    default __.Item
+        with get index = tree |> RandomAccess.item index
+        and set _ _ = invalidOp "Finger tree is read-only."
+
+    // interface IEnumerable<'T> with
+
     member __.GetEnumerator () =
         let s = tree |> RandomAccess.toSeq
         s.GetEnumerator()
 
-    member __.IndexOf item = failwith "Not implemented yet"
-
-    member __.Insert(index, item) = tree <- tree |> RandomAccess.insertAt index item
-
-    member __.IsReadOnly = false
-
-    member __.Item
-        with get index = tree |> RandomAccess.item index
-        and set index v = tree <- RandomAccess.set tree index v
-
-    member __.Remove item = failwith "Not implemented yet"
-
-    member __.RemoveAt index = tree <- tree |> RandomAccess.removeIndex index
-
-    interface IList<'T> with
-        member me.Add item = me.Add item
-        member me.Clear () = me.Clear()
-        member me.Contains item = me.Contains item
-        member me.CopyTo(array, arrayIndex) = me.CopyTo(array, arrayIndex)
-        member me.Count = me.Count
+    interface IEnumerable<'T> with
         member me.GetEnumerator () = me.GetEnumerator()
         member me.GetEnumerator () = me.GetEnumerator() :> System.Collections.IEnumerator
-        member me.IndexOf item = me.IndexOf item
-        member me.Insert(index, item) = me.Insert(index, item)
-        member me.IsReadOnly = me.IsReadOnly
+
+[<Sealed>]
+type MutableList<'T>(source:seq<'T>) =
+    inherit ImmutableList<'T>(source)
+
+    new () = MutableList(Seq.empty:seq<'T>)
+
+    new (source:ImmutableList<_>) as this =
+        MutableList()
+        then
+            this.Tree <- source.Tree
+
+    // interface IList<'T> with
+
+    override me.Item
+        with get index = base.[index]
+        and set index value = me.Tree <- RandomAccess.set me.Tree index value
+
+    member me.Add item = me.Tree <- me.Tree |> RandomAccess.append item
+
+    member me.Clear () = me.Tree <- RandomAccess.empty
+
+    member me.Insert(index, item) = me.Tree <- me.Tree |> RandomAccess.insertAt index item
+
+    member me.RemoveAt index = me.Tree <- me.Tree |> RandomAccess.removeIndex index
+
+    interface IList<'T> with
+        member me.Count = me.Count
         member me.Item
-            with get index = me.[index]
+            with get index = (me :> ImmutableList<_>).[index]
             and set index v = me.[index] <- v
-        member me.Remove item = me.Remove item
+        member me.Add item = me.Add item
+        member me.Clear () = me.Clear()
+        member me.Contains item = failwith "Not implemented yet"
+        member me.CopyTo(array, arrayIndex) = me.CopyTo(array, arrayIndex)
+        member me.GetEnumerator () = me.GetEnumerator()
+        member me.GetEnumerator () = (me :> System.Collections.IEnumerable).GetEnumerator()
+        member me.IndexOf item = failwith "Not implemented yet"
+        member me.Insert(index, item) = me.Insert(index, item)
+        member me.IsReadOnly = false
+        member me.Remove item = failwith "Not implemented yet"
         member me.RemoveAt index = me.RemoveAt index
+
+module private Helpers =
+    type Which<'T> = {
+        Tree : RandomAccess.Tree<'T>
+        Mutabl : bool
+    }
+
+    let doAndPack f which =
+        let tree = f which.Tree
+        if which.Mutabl then
+            MutableList(Tree = tree) :> ImmutableList<_>
+        else
+            ImmutableList(Tree = tree)
+
 
 [<Extension>]
 type RandomAccess =
-    static member private Construct tree = RandomAccess(Tree = tree)
-
-    static member Emtpy<'T>() = RandomAccess<'T>()
-
-    [<Extension>]
-    static member Append(tree:RandomAccess<_>, item) =
-        tree.Tree |> RandomAccess.append item |> RandomAccess.Construct
+    static member private Extract (tree:MutableList<_>) = { Helpers.Tree = tree.Tree; Helpers.Mutabl = true }
+    static member private Extract (tree:ImmutableList<_>) = { Helpers.Tree = tree.Tree; Helpers.Mutabl = false }
 
     [<Extension>]
-    static member Prepend(tree:RandomAccess<_>, item) =
-        tree.Tree |> RandomAccess.prepend item |> RandomAccess.Construct
+    static member Append(tree:ImmutableList<_>, item) =
+        tree |> RandomAccess.Extract |> Helpers.doAndPack (RandomAccess.append item)
 
     [<Extension>]
-    static member Concat(tree:RandomAccess<_>, rhs:RandomAccess<_>) =
-        RandomAccess.concat tree.Tree rhs.Tree |> RandomAccess.Construct
+    static member Prepend(tree:ImmutableList<_>, item) =
+        tree |> RandomAccess.Extract |> Helpers.doAndPack (RandomAccess.prepend item)
 
     [<Extension>]
-    static member Set(tree:RandomAccess<_>, index, value) =
-        RandomAccess.set tree.Tree index value |> RandomAccess.Construct
+    static member Concat(tree:ImmutableList<_>, rhs:ImmutableList<_>) =
+        tree |> RandomAccess.Extract |> Helpers.doAndPack (fun lhs -> RandomAccess.concat lhs rhs.Tree)
+
+    [<Extension>]
+    static member Set(tree:ImmutableList<_>, index, value) =
+        tree |> RandomAccess.Extract |> Helpers.doAndPack (fun tree -> RandomAccess.set tree index value)
+
+    [<Extension>]
+    static member InsertAt(tree:ImmutableList<_>, index, value) =
+        tree |> RandomAccess.Extract |> Helpers.doAndPack (RandomAccess.insertAt index value)
+
+    [<Extension>]
+    static member RemoveIndex(tree:ImmutableList<_>, index) =
+        tree |> RandomAccess.Extract |> Helpers.doAndPack (RandomAccess.removeIndex index)

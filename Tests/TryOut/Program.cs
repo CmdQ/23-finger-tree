@@ -11,21 +11,24 @@ namespace CmdQ.FingerTree.TryOut
     {
         static void Main(string[] args)
         {
-            var tree = new RandomAccess<int>(new[] { 1, 2, 9, 8, 4, 6 });
-            tree.RemoveAt(3);
-            tree[3] = 33;
+            var tree = new ImmutableList<int>(new[] { 1, 2, 9, 8, 4, 6 });
             Console.WriteLine(tree[3]);
             var shadow = tree.Set(3, 44);
             Console.WriteLine(shadow[3]);
             Console.WriteLine(tree[3]);
 
+            var mut = new MutableList<int>(shadow);
+            var back = new ImmutableList<int>(mut);
+            var x = mut[1];
+            mut[1] = x + 1;
+
             var five = new int[5];
-            tree.CopyTo(five, 0);
+            var less = tree.RemoveIndex(0);
+            less.CopyTo(five, 0);
 
-            var copy = new RandomAccess<int>(tree);
-            copy.RemoveAt(0);
+            var copy = new ImmutableList<int>(tree);
 
-            var e = RandomAccess.Emtpy<char>();
+            var e = new ImmutableList<char>();
             var d = e.Append('a');
 
             d.Concat(d);
