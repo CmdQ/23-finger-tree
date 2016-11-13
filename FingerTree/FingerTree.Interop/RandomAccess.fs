@@ -28,6 +28,8 @@ type ImmutableList<'T>(source:seq<'T>) =
 
     member __.ButLast () = ImmutableList(Tree = RandomAccess.butLast tree)
 
+    member me.IsEmpty = RandomAccess.isEmpty tree
+
     abstract Item : index:int -> 'T with get, set
     default __.Item
         with get index = tree |> RandomAccess.item index
@@ -124,35 +126,36 @@ namespace CmdQ.FingerTree.Interop.Extensions
             | :? MutableList<_> -> { Tree = tree.Tree; Mutable = true }
             | _ -> { Tree = tree.Tree; Mutable = false }
 
-        let doAndPack f which =
-            let tree = f which.Tree
+        let doAndPack f tree =
+            let which = extract tree
+            let re = f which.Tree
             if which.Mutable then
-                MutableList(Tree = tree) :> ImmutableList<_>
+                MutableList(Tree = re) :> ImmutableList<_>
             else
-                ImmutableList(Tree = tree)
+                ImmutableList(Tree = re)
 
     [<Extension>]
     type RandomAccess =
         [<Extension>]
         static member Append(tree:ImmutableList<_>, item) =
-            tree |> extract |> doAndPack (RandomAccess.append item)
+            tree |> doAndPack (RandomAccess.append item)
 
         [<Extension>]
         static member Prepend(tree:ImmutableList<_>, item) =
-            tree |> extract |> doAndPack (RandomAccess.prepend item)
+            tree |> doAndPack (RandomAccess.prepend item)
 
         [<Extension>]
         static member Concat(tree:ImmutableList<_>, rhs:ImmutableList<_>) =
-            tree |> extract |> doAndPack (fun lhs -> RandomAccess.concat lhs rhs.Tree)
+            tree |> doAndPack (fun lhs -> RandomAccess.concat lhs rhs.Tree)
 
         [<Extension>]
         static member Set(tree:ImmutableList<_>, index, value) =
-            tree |> extract |> doAndPack (fun tree -> RandomAccess.set tree index value)
+            tree |> doAndPack (fun tree -> RandomAccess.set tree index value)
 
         [<Extension>]
         static member InsertAt(tree:ImmutableList<_>, index, value) =
-            tree |> extract |> doAndPack (RandomAccess.insertAt index value)
+            tree |> doAndPack (RandomAccess.insertAt index value)
 
         [<Extension>]
         static member RemoveIndex(tree:ImmutableList<_>, index) =
-            tree |> extract |> doAndPack (RandomAccess.removeIndex index)
+            tree |> doAndPack (RandomAccess.removeIndex index)
