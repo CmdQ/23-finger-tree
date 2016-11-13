@@ -7,6 +7,8 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FingerTree", "FingerTree.fs
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Tests", "..\Tests\Tests.fsproj", "{868E9547-A079-44D6-82D9-AACD7B890335}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TryOut", "..\Tests\TryOut\TryOut.csproj", "{9C30ED22-130E-4392-9947-2BA08FD57BCF}"
+EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FingerTree.Interop", "FingerTree.Interop\FingerTree.Interop.fsproj", "{3BE05AD5-7576-4F4E-A0BF-2B9DE6C62B19}"
 EndProject
 Global
@@ -23,6 +25,10 @@ Global
 		{868E9547-A079-44D6-82D9-AACD7B890335}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{868E9547-A079-44D6-82D9-AACD7B890335}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{868E9547-A079-44D6-82D9-AACD7B890335}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9C30ED22-130E-4392-9947-2BA08FD57BCF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9C30ED22-130E-4392-9947-2BA08FD57BCF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9C30ED22-130E-4392-9947-2BA08FD57BCF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9C30ED22-130E-4392-9947-2BA08FD57BCF}.Release|Any CPU.Build.0 = Release|Any CPU
 		{3BE05AD5-7576-4F4E-A0BF-2B9DE6C62B19}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{3BE05AD5-7576-4F4E-A0BF-2B9DE6C62B19}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3BE05AD5-7576-4F4E-A0BF-2B9DE6C62B19}.Release|Any CPU.ActiveCfg = Release|Any CPU
