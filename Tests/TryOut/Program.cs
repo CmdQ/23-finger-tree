@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using CmdQ.FingerTree.Interop;
+using CmdQ.FingerTree.Interop.Extensions;
 
 namespace CmdQ.FingerTree.TryOut
 {
