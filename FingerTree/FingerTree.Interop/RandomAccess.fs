@@ -28,6 +28,21 @@ type ImmutableList<'T>(source:seq<'T>) =
 
     member __.ButLast () = ImmutableList(Tree = RandomAccess.butLast tree)
 
+    abstract Item : index:int -> 'T with get, set
+    default __.Item
+        with get index = tree |> RandomAccess.item index
+        and set _ _ = invalidOp "Finger tree is read-only."
+
+    // interface IEnumerable<'T> with
+
+    member __.GetEnumerator () =
+        let s = tree |> RandomAccess.toSeq
+        s.GetEnumerator()
+
+    interface IEnumerable<'T> with
+        member me.GetEnumerator () = me.GetEnumerator()
+        member me.GetEnumerator () = me.GetEnumerator() :> System.Collections.IEnumerator
+
     // interface ICollection<'T> with
 
     member __.Count = tree |> RandomAccess.length
@@ -49,21 +64,6 @@ type ImmutableList<'T>(source:seq<'T>) =
             | Nil ->
                 assert(i = me.Count)
         loop 0 tree
-
-    abstract Item : index:int -> 'T with get, set
-    default __.Item
-        with get index = tree |> RandomAccess.item index
-        and set _ _ = invalidOp "Finger tree is read-only."
-
-    // interface IEnumerable<'T> with
-
-    member __.GetEnumerator () =
-        let s = tree |> RandomAccess.toSeq
-        s.GetEnumerator()
-
-    interface IEnumerable<'T> with
-        member me.GetEnumerator () = me.GetEnumerator()
-        member me.GetEnumerator () = me.GetEnumerator() :> System.Collections.IEnumerator
 
 [<Sealed>]
 type MutableList<'T>(source:seq<'T>) =
@@ -116,41 +116,43 @@ namespace CmdQ.FingerTree.Interop.Extensions
     module private Helpers =
         type Which<'T> = {
             Tree : RandomAccess.Tree<'T>
-            Mutabl : bool
+            Mutable : bool
         }
+
+        let extract (tree:ImmutableList<_>) =
+            match tree with
+            | :? MutableList<_> -> { Tree = tree.Tree; Mutable = true }
+            | _ -> { Tree = tree.Tree; Mutable = false }
 
         let doAndPack f which =
             let tree = f which.Tree
-            if which.Mutabl then
+            if which.Mutable then
                 MutableList(Tree = tree) :> ImmutableList<_>
             else
                 ImmutableList(Tree = tree)
 
     [<Extension>]
     type RandomAccess =
-        static member private Extract (tree:MutableList<_>) = { Tree = tree.Tree; Mutabl = true }
-        static member private Extract (tree:ImmutableList<_>) = { Tree = tree.Tree; Mutabl = false }
-
         [<Extension>]
         static member Append(tree:ImmutableList<_>, item) =
-            tree |> RandomAccess.Extract |> doAndPack (RandomAccess.append item)
+            tree |> extract |> doAndPack (RandomAccess.append item)
 
         [<Extension>]
         static member Prepend(tree:ImmutableList<_>, item) =
-            tree |> RandomAccess.Extract |> doAndPack (RandomAccess.prepend item)
+            tree |> extract |> doAndPack (RandomAccess.prepend item)
 
         [<Extension>]
         static member Concat(tree:ImmutableList<_>, rhs:ImmutableList<_>) =
-            tree |> RandomAccess.Extract |> doAndPack (fun lhs -> RandomAccess.concat lhs rhs.Tree)
+            tree |> extract |> doAndPack (fun lhs -> RandomAccess.concat lhs rhs.Tree)
 
         [<Extension>]
         static member Set(tree:ImmutableList<_>, index, value) =
-            tree |> RandomAccess.Extract |> doAndPack (fun tree -> RandomAccess.set tree index value)
+            tree |> extract |> doAndPack (fun tree -> RandomAccess.set tree index value)
 
         [<Extension>]
         static member InsertAt(tree:ImmutableList<_>, index, value) =
-            tree |> RandomAccess.Extract |> doAndPack (RandomAccess.insertAt index value)
+            tree |> extract |> doAndPack (RandomAccess.insertAt index value)
 
         [<Extension>]
         static member RemoveIndex(tree:ImmutableList<_>, index) =
-            tree |> RandomAccess.Extract |> doAndPack (RandomAccess.removeIndex index)
+            tree |> extract |> doAndPack (RandomAccess.removeIndex index)

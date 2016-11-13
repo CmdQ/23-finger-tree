@@ -19,6 +19,7 @@ namespace CmdQ.FingerTree.TryOut
             Console.WriteLine(tree[3]);
 
             var mut = new MutableList<int>(shadow);
+            mut.RemoveIndex(4);
             var back = new ImmutableList<int>(mut);
             var x = mut[1];
             mut[1] = x + 1;
