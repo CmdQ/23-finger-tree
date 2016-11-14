@@ -213,23 +213,6 @@ module DeconstructTree =
         timedRun listAlone name 700
         listAlone.PersistCurrentResults file
 
-module RandomAccesToArray =
-    let name = "RandomAccesToArray"
-    let file = name + ".xml"
-
-    type Benchmark() =
-        inherit Operation("toArray")
-
-        let tree = seq { 1..1000000 } |> RandomAccess.ofSeq
-
-        override __.Run () =
-            tree |> RandomAccess.toArray |> ignore
-
-    let test = PastImplementationComparer<Benchmark>(Benchmark(), Version(1, 0), warmup = true, historyFile = file)
-    let benchmark () =
-        timedRun test name 5
-        test.PersistCurrentResults file
-
 let benchmarks = [
     InsertAppendOrDelete.compareSmall
     InsertAppendOrDelete.compareLarge
@@ -238,5 +221,4 @@ let benchmarks = [
     ConstructFromArray.run
     DeconstructTree.compare
     DeconstructTree.history
-    RandomAccesToArray.benchmark
 ]
