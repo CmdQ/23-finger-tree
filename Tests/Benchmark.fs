@@ -213,6 +213,25 @@ module DeconstructTree =
         timedRun listAlone name 700
         listAlone.PersistCurrentResults file
 
+module FastestToSeq =
+    let name = "FastestToSeq"
+    let file = name + ".xml"
+
+    type Benchmark() =
+        inherit Operation("toSeq")
+
+        let rand = Random()
+        let tree = Seq.init 1000000 (fun _ -> rand.NextDouble()) |> ConcatDeque.ofSeq
+
+        override __.Run () =
+            tree |> ConcatDeque.toSeq |> Seq.sum |> ignore
+
+    let test = PastImplementationComparer<Benchmark>(Benchmark(), Version(1, 0), warmup = true, historyFile = file)
+    let benchmark () =
+        timedRun test name 50
+        test.PersistCurrentResults file
+
+
 let benchmarks = [
     InsertAppendOrDelete.compareSmall
     InsertAppendOrDelete.compareLarge
@@ -221,4 +240,5 @@ let benchmarks = [
     ConstructFromArray.run
     DeconstructTree.compare
     DeconstructTree.history
+    FastestToSeq.benchmark
 ]

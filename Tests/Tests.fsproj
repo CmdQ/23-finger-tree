@@ -74,6 +74,7 @@
     <Content Include="DeconstructTree.xml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="FastestToSeq.xml" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FsCheck">
