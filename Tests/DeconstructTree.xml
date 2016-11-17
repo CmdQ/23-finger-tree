@@ -24,4 +24,16 @@
       </gcDelta>
     </testResult>
   </testRun>
+  <testRun id="toList v.1.2" hostname="Tobias-2016" date="2016-11-17T09:59:52.7356535+01:00">
+    <testResult testId="DeconstructTree" testDate="2016-11-17T09:59:56.566612+01:00">
+      <elapsedTime>19348934</elapsedTime>
+      <cpuTime>19375000</cpuTime>
+      <repeat>700</repeat>
+      <gcDelta>
+        <gen0>485</gen0>
+        <gen1>155</gen1>
+        <gen2>0</gen2>
+      </gcDelta>
+    </testResult>
+  </testRun>
 </testSuite>

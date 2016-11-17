@@ -208,7 +208,7 @@ module DeconstructTree =
     let versus = ImplementationComparer<Benchmark>(Array(), [List()], warmup = true)
     let compare () = timedRun versus name 600
 
-    let listAlone = PastImplementationComparer<List>(List(), Version(1, 1), warmup = true, historyFile = file)
+    let listAlone = PastImplementationComparer<List>(List(), Version(1, 2), warmup = true, historyFile = file)
     let history () =
         timedRun listAlone name 700
         listAlone.PersistCurrentResults file
