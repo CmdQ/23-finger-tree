@@ -51,8 +51,19 @@ module RandomAccess =
 
     let toList (tree:Tree<_>) = tree |> (toValueList >> List.map unpack)
 
+    let rec private toValueSeq<'a when 'a :> IMeasured<Size>> (tree:FingerTree<Size, 'a>) : seq<'a> = seq {
+        match tree with
+        | Single v ->
+            yield v
+        | Deep(_, prefix, Lazy deeper, suffix) ->
+            yield! prefix |> Digit.toList
+            yield! deeper |> toValueSeq |> Seq.collect Node.toList
+            yield! suffix |> Digit.toList
+        | _ -> ()
+    }
+
     /// Convert a tree to a sequence, i.e. enumerate all elements left to right.
-    let toSeq (tree:Tree<_>) = tree |> (toList >> List.toSeq)
+    let toSeq (tree:Tree<_>) = tree |> (toValueSeq >> Seq.map unpack)
 
     /// Return the number of elements in the tree.
     let length (tree:Tree<_>) = (fmeasure tree).Value
