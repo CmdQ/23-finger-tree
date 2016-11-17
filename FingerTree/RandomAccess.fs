@@ -38,18 +38,12 @@ module RandomAccess =
     let ofArray array = array |> ofSomething Array.fold
 
     /// Convert a tree to a list (left to right).
-    let rec private toValueList<'a when 'a :> IMeasured<Size>> (tree:FingerTree<Size, 'a>) : 'a list = [
-        match tree with
-        | Single v ->
-            yield v
-        | Deep(_, prefix, Lazy deeper, suffix) ->
-            yield! prefix |> Digit.toList
-            yield! deeper |> toValueList |> List.collect Node.toList
-            yield! suffix |> Digit.toList
-        | _ -> ()
-    ]
-
-    let toList (tree:Tree<_>) = tree |> (toValueList >> List.map unpack)
+    let toList tree =
+        let rec toList acc (tree:Tree<_>) =
+            match FingerTree.viewr tree with
+            | Nil -> acc
+            | View(Value head, Lazy tail) -> toList (head::acc) tail
+        toList [] tree
 
     let rec private toValueSeq<'a when 'a :> IMeasured<Size>> (tree:FingerTree<Size, 'a>) : seq<'a> = seq {
         match tree with
