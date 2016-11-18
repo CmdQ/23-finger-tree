@@ -10,6 +10,9 @@ let inline flip f x y = f y x
 /// Shorthand to create a lazy from a value.
 let lazyval = Lazy.CreateFromValue
 
+/// Restrict a value to be greater than or equal to lower and less than or equal to upper.
+let restrict lower value upper = min upper (max lower value)
+
 module List =
     /// Return all but the last element of a list. This is O(n).
     let butLast list =
