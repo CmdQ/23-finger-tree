@@ -56,6 +56,8 @@ module PriorityQueue =
             member __.Zero = Priority()
             member __.Plus rhs = Priority(max priority rhs.Priority)
 
+        override __.ToString () = sprintf "Priority = %f" priority
+
     type PriorityAndValue<'a> =
         {
             Priority : float32
@@ -63,3 +65,5 @@ module PriorityQueue =
         }
         interface IMeasured<Priority> with
             member me.Measure = Priority(me.Priority)
+
+        override me.ToString () = sprintf "%O (priority %f)" me.Value me.Priority
