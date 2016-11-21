@@ -14,7 +14,7 @@ PriorityQueue.peek pq2
 let r = pq2 |> PriorityQueue.pop
 
 let mutable pq3 = pq
-let rec loop tree = function
+let rec loop = function
     | PriorityQueue.Pop(h, r) ->
         printfn "%s" h
         loop r
