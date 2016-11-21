@@ -13,14 +13,15 @@ PriorityQueue.peek pq2
 
 let r = pq2 |> PriorityQueue.pop
 
-let mutable pq3 = pq
 let rec loop = function
     | PriorityQueue.Pop(h, r) ->
         printfn "%s" h
         loop r
     | _ ->
         printfn "That's it."
-loop pq3
+loop pq
+
+pq |> PriorityQueue.toSeqWithPriorities |> Seq.toList |> printfn "%A"
 
 PriorityQueue.peek r
 
