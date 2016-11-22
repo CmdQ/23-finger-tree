@@ -1,10 +1,11 @@
 ﻿/// Functions for querying and manipulating random access finger trees.
 module CmdQ.FingerTree.RandomAccess
 
+open CmdQ.FingerTree.Monoidal
 open Error
 open Monoids
 open Monoids.RandomAccess
-open CmdQ.FingerTree.Monoidal
+open System.Collections.Generic
 
 /// A shorthand type for a finger tree.
 type Tree<'a> = FingerTree<Size, Value<'a>>
@@ -177,3 +178,18 @@ let sub tree startIndex count =
 
 /// Reverse the content of a tree.
 let rev (tree:Tree<_>) : Tree<_> = FingerTree.rev tree
+
+/// Returns the index of the first element in the array that satisfies the given predicate.
+let tryFindIndex predicate tree =
+    tree
+    |> toSeq
+    |> Seq.zip (Seq.initInfinite id)
+    |> Seq.tryFind (snd >> predicate)
+    |> Option.map fst
+
+/// Returns the index of the first element in the array that satisfies the given predicate.
+/// Raise KeyNotFoundException if none of the elements satisfy the predicate.
+let findIndex predicate tree =
+    match tree |> tryFindIndex predicate with
+    | Some index -> index
+    | None -> KeyNotFoundException("Matching entry could not be found.") |> raise

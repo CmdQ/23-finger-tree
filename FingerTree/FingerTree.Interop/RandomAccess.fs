@@ -6,7 +6,7 @@ open CmdQ.FingerTree.Monoids.RandomAccess
 open System
 open System.Collections.Generic
 
-type ImmutableList<'T>(source:seq<'T>) =
+type ImmutableList<'T when 'T : equality>(source:seq<'T>) =
     let mutable tree = source |> RandomAccess.ofSeq
 
     new () = ImmutableList<'T>(Seq.empty:seq<'T>)
@@ -67,8 +67,19 @@ type ImmutableList<'T>(source:seq<'T>) =
                 assert(i = me.Count)
         loop 0 tree
 
+    member __.Contains item =
+        tree |> RandomAccess.tryFindIndex ((=)item) |> Option.isSome
+
+    // interface IList<'T> with
+
+    member __.IndexOf item =
+        match tree |> RandomAccess.tryFindIndex ((=)item) with
+        | Some index -> index
+        | _ -> -1
+
+
 [<Sealed>]
-type MutableList<'T>(source:seq<'T>) =
+type MutableList<'T when 'T : equality>(source:seq<'T>) =
     inherit ImmutableList<'T>(source)
 
     new () = MutableList(Seq.empty:seq<'T>)
@@ -92,6 +103,12 @@ type MutableList<'T>(source:seq<'T>) =
 
     member me.RemoveAt index = me.Tree <- me.Tree |> RandomAccess.removeIndex index
 
+    member me.Remove item =
+        let i = me.IndexOf item
+        if i < 0 then false else
+        me.RemoveAt i
+        true
+
     interface IList<'T> with
         member me.Count = me.Count
         member me.Item
@@ -99,14 +116,14 @@ type MutableList<'T>(source:seq<'T>) =
             and set index v = me.[index] <- v
         member me.Add item = me.Add item
         member me.Clear () = me.Clear()
-        member me.Contains item = failwith "Not implemented yet"
+        member __.Contains item = base.Contains item
         member me.CopyTo(array, arrayIndex) = me.CopyTo(array, arrayIndex)
         member me.GetEnumerator () = me.GetEnumerator()
         member me.GetEnumerator () = (me :> System.Collections.IEnumerable).GetEnumerator()
-        member me.IndexOf item = failwith "Not implemented yet"
+        member __.IndexOf item = base.IndexOf item
         member me.Insert(index, item) = me.Insert(index, item)
-        member me.IsReadOnly = false
-        member me.Remove item = failwith "Not implemented yet"
+        member __.IsReadOnly = false
+        member me.Remove item = me.Remove item
         member me.RemoveAt index = me.RemoveAt index
 
 namespace CmdQ.FingerTree.Interop.Extensions

@@ -33,6 +33,12 @@ namespace CmdQ.FingerTree.TryOut
             d.Concat(d);
 
             var l = d.ToList();
+
+            var isit = d.Contains('a');
+            isit = d.Contains('z');
+
+            var wasit = mut.Remove(9);
+            wasit = mut.Remove(-9);
         }
     }
 }
