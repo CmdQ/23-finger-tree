@@ -12,31 +12,36 @@ type Node<'a> =
 module Node =
     /// Convert a 2-3-Node to a list.
     let toList = function
-        | Node2(a, b) -> [a; b]
+        | Node2(a, b)    -> [a; b]
         | Node3(a, b, c) -> [a; b; c]
 
     /// Convert a list of nodes to a list of deeper nodes so that the length shrinks to about 50 %.
     let rec toNodeList = function
         | []
-        | [_] -> invalidOp "No enough elements."
-        | [x; y] -> [Node2(x, y)]
-        | [x; y; z] -> [Node3(x, y, z)]
-        | x::y::rest -> Node2(x, y)::(toNodeList rest)
+        | [_]        -> invalidOp "No enough elements."
+        | [x; y]     -> [Node2(x, y)]
+        | [x; y; z]  -> [Node3(x, y, z)]
+        | x::y::rest ->  Node2(x, y)::(toNodeList rest)
+
+    /// Apply a function while also reversing the results.
+    let revMap f = function
+        | Node2(a, b)    -> Node2(f b, f a)
+        | Node3(a, b, c) -> Node3(f c, f b, f a)
 
 /// A digit holds at least 1 and up to 4 elements.
 type Digit<'a> =
-    | One of 'a
-    | Two of 'a * 'a
+    | One   of 'a
+    | Two   of 'a * 'a
     | Three of 'a * 'a * 'a
-    | Four of 'a * 'a * 'a * 'a
+    | Four  of 'a * 'a * 'a * 'a
 
     /// Convert to a list.
     member me.ToList () =
         match me with
-        | One a -> [a]
-        | Two(a, b) -> [a; b]
-        | Three(a, b, c) -> [a; b; c]
-        | Four(a, b, c, d) -> [a; b; c; d]
+        | One   a           -> [a]
+        | Two  (a, b)       -> [a; b]
+        | Three(a, b, c)    -> [a; b; c]
+        | Four (a, b, c, d) -> [a; b; c; d]
 
 /// A finger tree is either empty, holds a single elements or gets recursive with a prefix and a suffix of digits.
 [<NoComparison>]
@@ -75,49 +80,56 @@ module Digit =
 
     /// Convert a list of values to a digit.
     let ofList = function
-        | [a] -> One(a)
-        | [a; b] -> Two(a, b)
-        | [a; b; c] -> Three(a, b, c)
-        | [a; b; c; d] -> Four(a, b, c, d)
-        | _ -> failwith Messages.onlyList1to4Accepted
+        | [a]          ->   One(a)
+        | [a; b]       ->   Two(a, b)
+        | [a; b; c]    -> Three(a, b, c)
+        | [a; b; c; d] ->  Four(a, b, c, d)
+        | _            -> failwith Messages.onlyList1to4Accepted
 
     /// Convert a digit to a list.
     let toList (digit:Digit<_>) = digit.ToList()
 
     /// Append a value to the right side of a digit.
     let append x = function
-        | One a -> Two(a, x)
-        | Two(a, b) -> Three(a, b, x)
-        | Three(a, b, c) -> Four(a, b, c, x)
-        | _ -> failwith Messages.digitAlreadyHas4Entries
+        | One a          ->   Two(a, x)
+        | Two  (a, b)    -> Three(a, b, x)
+        | Three(a, b, c) ->  Four(a, b, c, x)
+        | _              -> failwith Messages.digitAlreadyHas4Entries
 
     /// Prepend a value to the left side of a digit.
     let prepend x = function
-        | One a -> Two(x, a)
-        | Two(a, b) -> Three(x, a, b)
-        | Three(a, b, c) -> Four(x, a, b, c)
-        | _ -> failwith Messages.digitAlreadyHas4Entries
+        | One a          ->   Two(x, a)
+        | Two  (a, b)    -> Three(x, a, b)
+        | Three(a, b, c) ->  Four(x, a, b, c)
+        | _              -> failwith Messages.digitAlreadyHas4Entries
 
     /// Promote a digit to a finger tree.
     let promote = function
-        | One a -> Single a
-        | Two(a, b) -> Deep(One a, lazyval Empty, One b)
-        | Three(a, b, c) -> Deep(Two(a, b), lazyval Empty, One(c))
-        | Four(a, b, c, d) -> Deep(Two(a, b), lazyval Empty, Two(c, d))
+        | One a             -> Single a
+        | Two  (a, b)       -> Deep(One a    , lazyval Empty, One b)
+        | Three(a, b, c)    -> Deep(Two(a, b), lazyval Empty, One(c))
+        | Four (a, b, c, d) -> Deep(Two(a, b), lazyval Empty, Two(c, d))
 
     /// Active pattern to get the left-most element and the rest to the right.
     let (|SplitFirst|_|) = function
-        | Two(a, b) -> Some(a, One b)
-        | Three(a, b, c) -> Some(a, Two(b, c))
-        | Four(a, b, c, d) -> Some(a, Three(b, c, d))
-        | _ -> None
+        | Two  (a, b)       -> Some(a,   One b)
+        | Three(a, b, c)    -> Some(a,   Two(b, c))
+        | Four (a, b, c, d) -> Some(a, Three(b, c, d))
+        | _                 -> None
 
     /// Active pattern to get the right-most element and the rest to the left.
     let (|SplitLast|_|) = function
-        | Two(a, b) -> Some(One a, b)
-        | Three(a, b, c) -> Some(Two(a, b), c)
-        | Four(a, b, c, d) -> Some(Three(a, b, c), d)
-        | _ -> None
+        | Two  (a, b)       -> Some(  One a       , b)
+        | Three(a, b, c)    -> Some(  Two(a, b)   , c)
+        | Four (a, b, c, d) -> Some(Three(a, b, c), d)
+        | _                 -> None
+
+    /// Apply a function while also reversing the results.
+    let revMap f = function
+        | One   a           -> One  (               f a)
+        | Two  (a, b)       -> Two  (          f b, f a)
+        | Three(a, b, c)    -> Three(     f c, f b, f a)
+        | Four (a, b, c, d) -> Four (f d, f c, f b, f a)
 
 /// A View is either empty or points to an element in the finger tree and its position.
 type View<'a> = Nil | View of 'a * Lazy<FingerTree<'a>>
@@ -301,3 +313,12 @@ module ConcatDeque =
 
         if paired.Length = 0 then Empty else
         paired |> Array.reduce concat
+
+    let rec private rev'<'a> (f:'a -> 'a) : tree:FingerTree<'a> -> FingerTree<'a> = function
+        | Empty as tree                -> tree
+        | Single v                     -> Single(f v)
+        | Deep(prefix, deeper, suffix) ->
+            Deep(Digit.revMap f suffix, lazy (rev' (Node.revMap f) deeper.Value), Digit.revMap f prefix)
+
+    /// Reverse the content of a tree.
+    let rev tree = rev' id tree

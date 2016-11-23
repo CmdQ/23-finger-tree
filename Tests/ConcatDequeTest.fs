@@ -175,4 +175,16 @@ let properties =
             fun elms ->
                 let tree:FingerTree<uint16> = elms |> ConcatDeque.ofArray
                 elms.Length <= 1 || tree |> ConcatDeque.butLast |> ConcatDeque.toArray = elms.[..elms.Length - 2]
+
+        testProperty "Reversing twice undoes." <|
+            fun elms ->
+                let tree:FingerTree<int> = elms |> ConcatDeque.ofArray
+                (tree |> ConcatDeque.rev |> ConcatDeque.rev |> ConcatDeque.toArray) = elms
+
+        testProperty "Reversing is the same as reversing input." <|
+            fun elms ->
+                let tree:FingerTree<int> = elms |> ConcatDeque.ofArray
+                let lhs = tree |> ConcatDeque.rev |> ConcatDeque.toArray
+                let rhs = Array.rev elms
+                lhs = rhs
     ]
