@@ -114,13 +114,15 @@ let indexChecked whenOutside whenOk index (tree:Tree<_>) =
     else
         whenOk(index, tree)
 
-let private predicateSwitches index (x:Size) = x.Value > index
-let private singletonSize = Size()
+let findSplit<'a> =
+    let zero = Size()
+    fun index (tree:Tree<'a>) ->
+        tree |> FingerTree.split (fun x -> x.Value > index) zero
 
 /// Return the element at a given position.
 let item index tree =
     indexChecked outsideError (fun (index, tree) ->
-        let (Split(_, Value elm, _)) = tree |> FingerTree.split (predicateSwitches index) singletonSize
+        let (Split(_, Value elm, _)) = tree |> findSplit index
         elm
     ) index tree
 
@@ -130,14 +132,14 @@ let get tree index = item index tree
 /// Return a new tree where a given position is replaced with a new value.
 let set tree index value : Tree<_> =
     indexChecked outsideError (fun (index, tree) ->
-        let (Split(left, _, right)) = tree |> FingerTree.split (predicateSwitches index) singletonSize
+        let (Split(left, _, right)) = tree |> findSplit index
         FingerTree.prepend (Value value) right |> FingerTree.concat left
     ) index tree
 
 /// Remove an element at a given position from the tree.
 let removeIndex index tree : Tree<_> =
     indexChecked outsideError (fun (index, tree) ->
-        let (Split(left, _, right)) = tree |> FingerTree.split (predicateSwitches index) singletonSize
+        let (Split(left, _, right)) = tree |> findSplit index
         FingerTree.concat left right
     ) index tree
 
@@ -152,7 +154,7 @@ let insertAt index value tree =
         if index = len then
             tree |> append value
         else
-            let (Split(left, Value current, right)) = tree |> FingerTree.split (predicateSwitches index) singletonSize
+            let (Split(left, Value current, right)) = tree |> findSplit index
             concat (left |> append value) (prepend current right)
 
 /// Extract a number of elements starting at a given position.
@@ -160,7 +162,7 @@ let sub tree startIndex count =
     let onlyN count tree =
         if count = length tree then tree else
         indexChecked outsideError (fun (index, tree) ->
-            let (Split(sub, _, _)) = tree |> FingerTree.split (predicateSwitches index) singletonSize
+            let (Split(sub, _, _)) = tree |> findSplit index
             sub
         ) count tree
     if startIndex = 0 then
@@ -168,7 +170,7 @@ let sub tree startIndex count =
     else
         let skipped =
             indexChecked outsideError (fun (index, tree) ->
-                let (Split(_, _, sub)) = tree |> FingerTree.split (predicateSwitches index) singletonSize
+                let (Split(_, _, sub)) = tree |> findSplit index
                 sub
             ) (startIndex - 1) tree
         skipped |> onlyN count
