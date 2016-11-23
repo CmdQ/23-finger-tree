@@ -24,7 +24,6 @@ type OpType() =
 
     override me.Check(sut, model) =
         let re = me.DoCheck(sut, model)
-        !sut |> RandomAccess.depthCheck |> ignore
         re
 
 module RandomAccess =

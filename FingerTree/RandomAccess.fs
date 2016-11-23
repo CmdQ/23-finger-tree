@@ -174,16 +174,3 @@ let sub tree startIndex count =
                 sub
             ) (startIndex - 1) tree
         skipped |> onlyN count
-
-/// Return the depth of a tree while also checking that all measures are correct.
-let rec depthCheck<'a
-    when 'a :> IMeasured<Size>
-    > : FingerTree<Size, 'a> -> int = function
-    | Empty -> 0
-    | Single _ -> 1
-    | Deep(total, prefix, Lazy deeper, suffix) ->
-        let measured = (fmeasure prefix).Value + (fmeasure deeper).Value + (fmeasure suffix).Value
-        if total.Value <> measured then
-            System.ApplicationException(sprintf "The measures are not consistent. %i is cached but %i was measured." total.Value measured) |> raise
-        else
-            depthCheck deeper + 1
