@@ -143,7 +143,7 @@ type DebugMachine() as this =
             override __.Pre model =
                 model.Count > 0
 
-            override me.DoCheck (sut, model)=
+            override me.DoCheck(sut, model) =
                 sut := !sut |> RandomAccess.tail
                 !sut |> RandomAccess.sequenceEqual model
                 |@ me.ToString()
@@ -159,12 +159,25 @@ type DebugMachine() as this =
             override __.Pre model =
                 model.Count > 0
 
-            override me.DoCheck (sut, model)=
+            override me.DoCheck(sut, model) =
                 sut := !sut |> RandomAccess.butLast
                 !sut |> RandomAccess.sequenceEqual model
                 |@ me.ToString()
 
             override __.ToString () = "spine"
+        }
+
+    let reverse =
+        { new OpType() with
+            override __.DoRun model =
+                model.Reverse()
+
+            override __.DoCheck(sut, model) =
+                sut := !sut |> RandomAccess.rev
+                !sut |> RandomAccess.sequenceEqual model
+                |> Prop.trivial (model.Count = 0)
+
+            override __.ToString () = "reverse"
         }
 
     let collectAddEnd (f:_ -> #seq<TestType>) what =
@@ -268,7 +281,7 @@ type DebugMachine() as this =
             return cmd list
         }
         let withUnit = gen {
-            return! Gen.elements [tail; spine]
+            return! Gen.elements [tail; spine; reverse]
         }
         let forCollect = gen {
             if debug then

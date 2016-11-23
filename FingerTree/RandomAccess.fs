@@ -174,3 +174,6 @@ let sub tree startIndex count =
                 sub
             ) (startIndex - 1) tree
         skipped |> onlyN count
+
+/// Reverse the content of a tree.
+let rev (tree:Tree<_>) : Tree<_> = FingerTree.rev tree

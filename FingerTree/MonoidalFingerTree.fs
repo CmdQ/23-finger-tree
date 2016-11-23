@@ -40,9 +40,14 @@ module Node =
         | [x; y; z] -> [Node3(mconcat list, x, y, z)]
         | x::y::rest -> Node2(mconcat [x; y], x, y)::(toNodeList rest)
 
+    /// Apply a function while also reversing the results.
+    let revMap f = function
+        | Node2(v, a, b)    -> Node2(v, f b, f a)
+        | Node3(v, a, b, c) -> Node3(v, f c, f b, f a)
+
 /// A digit holds at least 1 and up to 4 elements.
 type Digit<'m, 'a
-    when 'm :> IMonoid<'m>
+        when 'm :> IMonoid<'m>
         and 'a :> IMeasured<'m>
     > =
     | One of 'a
@@ -151,6 +156,13 @@ module Digit =
         | Three(a, b, c) -> Some(Two(a, b), c)
         | Four(a, b, c, d) -> Some(Three(a, b, c), d)
         | _ -> None
+
+    /// Apply a function while also reversing the results.
+    let revMap f = function
+        | One   a           -> One  (               f a)
+        | Two  (a, b)       -> Two  (          f b, f a)
+        | Three(a, b, c)    -> Three(     f c, f b, f a)
+        | Four (a, b, c, d) -> Four (f d, f c, f b, f a)
 
 /// A View is either empty or points to an element in the finger tree and its position.
 type View<'m, 'a
@@ -351,3 +363,14 @@ module FingerTree =
                 Split(deep prefix deeper.Value before, x, chunkToTree after)
         | _ ->
             invalidIndex Messages.splitPointNotFound
+
+    let rec private rev'<'m, 'a when 'a :> IMeasured<'m> and 'm : (new : unit -> 'm)>
+        (f:'a -> 'a) : tree:FingerTree<'m, 'a> -> FingerTree<'m, 'a>
+        = function
+        | Empty as tree                       -> tree
+        | Single x                            -> Single(f x)
+        | Deep(total, prefix, deeper, suffix) ->
+            Deep(total, Digit.revMap f suffix, lazy (rev' (Node.revMap f) deeper.Value), Digit.revMap f prefix)
+
+    /// Reverse the content of a tree.
+    let rev tree = rev' id tree
