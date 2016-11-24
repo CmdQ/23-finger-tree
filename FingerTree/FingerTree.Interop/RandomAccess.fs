@@ -109,6 +109,8 @@ type MutableList<'T when 'T : equality>(source:seq<'T>) =
         me.RemoveAt i
         true
 
+    member me.Reverse () = me.Tree <- me.Tree |> RandomAccess.rev
+
     interface IList<'T> with
         member me.Count = me.Count
         member me.Item
@@ -176,3 +178,7 @@ namespace CmdQ.FingerTree.Interop.Extensions
         [<Extension>]
         static member RemoveIndex(tree:ImmutableList<_>, index) =
             tree |> doAndPack (RandomAccess.removeIndex index)
+
+        [<Extension>]
+        static member Reverse(tree:ImmutableList<_>) =
+            tree |> doAndPack RandomAccess.rev

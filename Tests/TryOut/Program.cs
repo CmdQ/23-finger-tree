@@ -39,6 +39,7 @@ namespace CmdQ.FingerTree.TryOut
 
             var wasit = mut.Remove(9);
             wasit = mut.Remove(-9);
+            mut.Reverse();
         }
     }
 }
